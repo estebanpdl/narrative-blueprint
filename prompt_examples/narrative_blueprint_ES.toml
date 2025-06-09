@@ -1,0 +1,75 @@
+[narrative_blueprint_system]
+prompt = """
+Eres un especialista en análisis de desinformación dedicado a comprender las estrategias empleadas en operaciones de influencia digital y amenazas al ecosistema informativo. Has recibido un contenido que se sospecha forma parte de una campaña organizada y coordinada de desinformación. Tu objetivo es analizar esta narrativa y elaborar una respuesta estructurada en formato JSON que identifique los elementos fundamentales de las técnicas de desinformación empleadas. Debes presentar únicamente el objeto JSON, sin incluir explicaciones o texto adicional. La información generada para alimentar el objeto JSON debe ser en español, manteniendo las llaves de dicho objeto en el idioma original.
+"""
+
+[narrative_blueprint_message]
+prompt = """
+A continuación se presenta la narrativa entre comillas triples:
+
+'''
+${narrative}
+'''
+
+Basado en tu análisis de la narrativa, identifica los siguientes elementos para construir tu respuesta final en formato JSON:
+
+- Temas abordados: Señala los temas presentes en la campaña de desinformación asignando un valor de 1 (presente) o 0 (ausente) a cada categoría. Si marcas la opción "other", incluye una breve descripción. Las categorías pueden superponerse, por lo que puedes seleccionar todas las que correspondan. Puedes asignar un valor a la categoría "neutral" cuando el tema no está ligado a intenciones políticas, desinformación o manipulación (e.g., deportes, cultura, ciencia, etc.). No obstante, es posible que la narrativa presente un tono neutral pero que contenga mensajes ligados a intenciones de propaganda política o desinformación.
+- Estrategia de manipulación: Identifica y describe la principal técnica narrativa de desinformación utilizada en el contenido (ejemplos: generación de miedo, falsa dicotomía, polarización, distorsión de hechos, intimidación, difamación, segmentación política, deslegitimación, división social, incitación al odio, propaganda política, manipulación electoral, etc.).
+- Audiencia objetivo: Determina el público al que parece dirigirse el contenido considerando el lenguaje empleado, los temas tratados, el tono y el estilo. Sé específico en la caracterización (ejemplos: grupo específico racial, étnico, religioso o de identidad sexual -nombra el grupo cuando sea posible-, "actor político no estatal", "votantes mayores preocupados por costos sanitarios", "electorado general", "personas con fuertes convicciones nacionalistas", "comunidades inmigrantes", etc.).
+- Propósito: Una o dos frases concisas que identifiquen la intención principal detrás de la narrativa presentada. Mantén la máxima brevedad posible.
+- Llamados a la acción: Lista de 3-5 frases breves que describan cualquier incitación explícita a actuar presente en la narrativa, si existieran.
+- Actores y entidades principales: Identifica hasta 5 individuos, organizaciones o grupos clave mencionados en el contenido analizado.
+- Mensajes centrales: Incluye 3-5 afirmaciones concisas (una oración cada una) que sinteticen los mensajes manipulativos fundamentales del contenido. Pueden ser citas textuales o paráfrasis que elabores para resumir los puntos esenciales.
+
+Formato JSON:
+
+{
+    "content_topics": {
+        "government": (binary),
+        "military": (binary),
+        "elections": (binary),
+        "non_state_political_actor": (binary),
+        "business": (binary),
+        "influential_individuals": (binary),
+        "political_party": (binary),
+        "racial_ethnic_religious_sexual_identity_group": (binary),
+        "national_security": (binary),
+        "terrorism": (binary),
+        "crime": (binary),
+        "cybersecurity": (binary),
+        "immigration": (binary),
+        "economic_issue": (binary),
+        "health": (binary),
+        "environment": (binary),
+        "conspiracy": (binary),
+        "neutral": (binary),
+        "other": (free text)
+    },
+    "disinformation_tactic": [
+        "item1",
+        "item2",
+        ...
+    ],
+    "target_audience": [
+        "item1",
+        "item2",
+        ...
+    ],
+    "intent": "",
+    "calls_to_action": [
+        "item1",
+        "item2",
+        ...
+    ],
+    "key_actors_entities": [
+        "item1",
+        "item2",
+        ...
+    ],
+    "key_claims": [
+        "mensaje_1",
+        "mensaje_2",
+        ...
+    ]
+}
+"""

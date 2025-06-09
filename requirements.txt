@@ -1,0 +1,10 @@
+anthropic
+google-genai
+networkx
+openai
+pandas
+pymongo
+requests
+tiktoken
+tomli
+tqdm

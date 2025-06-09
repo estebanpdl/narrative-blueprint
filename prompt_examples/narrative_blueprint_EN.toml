@@ -1,0 +1,75 @@
+[system]
+prompt = """
+You are a disinformation analyst working to understand the tactics used in online influence operations and information threats. You have been provided with a narrative from a suspected disinformation campaign. Your task is to analyze this narrative and generate a structured JSON response that captures the key elements of the disinformation techniques used. Do not provide any explanation or text outside of the JSON object.
+"""
+
+[message]
+prompt = """
+Here's the narrative enclosed in triple quotes:
+
+'''
+${narrative}
+'''
+
+Identify the following sections based on your assessment of the narrative to complete your final JSON response:
+
+- Content topics: Indicate which topics are evident in the disinformation campaign by assigning a value of 1 or 0 to each category. If "other" is selected, provide a brief description. Categories are not mutually exclusive. All relevant categories can be added. Mark the 'neutral' category when the topic appears unrelated to political intentions, disinformation, or manipulation (such as sports, culture, science, etc.). Be aware, however, that narratives may present an apparently neutral tone while still containing embedded messages designed to advance political propaganda or spread disinformation.
+- Disinformation tactic: Identify and describe the primary disinformation or manipulation narrative tactic used in the narrative, e.g., fear-mongering, false dichotomy, polarize, distort facts, harass, intimidate, libel, political segmentation, dismiss, divide, spread hate, political propaganda, influence electorate, etc.
+- Target audience: Infer the most likely target audience for this narrative based on the language used, the topics discussed, the tone and style. Be as specific as possible. e.g., Specific Racial, Ethnic, Religious, or Sexual Identity Group (name the group if possible), "Non-State Political Actor," "elderly voters worried about healthcare costs," "electorate," "people with strong nationalist beliefs," "immigrants", etc.
+- Intent: A string containing one or two succinct sentences identifying the intent of the primary narrative. Be as concise as possible.
+- Calls to action: A list of 3-5 concise strings describing any explicit calls to action in the narrative, if any.
+- Key actors and entities: Identify up to 5 key individuals, organizations, or groups mentioned in the narrative.
+- Key claims: Include 3-5 concise claims (one sentence each) that encapsulate the narrative's key manipulative adversarial messages. These can be direct quotes from the narrative or paraphrases crafted by you to summarize essential points. Prioritize, however, paraphrasing the claims to ensure they are concise, accurate, and influence operation-related, rather than direct quotes. If a highly pervasive quote has been used, it is acceptable to use it as a claim. If narrative is too neutral, do not include any claims, keeping the "key_claims" field as an empty list.
+
+JSON Format:
+
+{
+    "content_topics": {
+        "government": (binary),
+        "military": (binary),
+        "elections": (binary),
+        "non_state_political_actor": (binary),
+        "business": (binary),
+        "influential_individuals": (binary),
+        "political_party": (binary),
+        "racial_ethnic_religious_sexual_identity_group": (binary),
+        "national_security": (binary),
+        "terrorism": (binary),
+        "crime": (binary),
+        "cybersecurity": (binary),
+        "immigration": (binary),
+        "economic_issue": (binary),
+        "health": (binary),
+        "environment": (binary),
+        "conspiracy": (binary),
+        "neutral": (binary),
+        "other": (free text)
+    },
+    "disinformation_tactic": [
+        "item1",
+        "item2",
+        ...
+    ],
+    "target_audience": [
+        "item1",
+        "item2",
+        ...
+    ],
+    "intent": "",
+    "calls_to_action": [
+        "item1",
+        "item2",
+        ...
+    ],
+    "key_actors_entities": [
+        "item1",
+        "item2",
+        ...
+    ],
+    "key_claims": [
+        "claim_1",
+        "claim_2",
+        ...
+    ]
+}
+"""

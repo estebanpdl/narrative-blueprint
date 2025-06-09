@@ -1,0 +1,11 @@
+# .vscode settings
+.vscode
+
+# cache files
+__pycache__/
+
+# env files
+.env
+
+# ignore local logs and datasets
+logs/

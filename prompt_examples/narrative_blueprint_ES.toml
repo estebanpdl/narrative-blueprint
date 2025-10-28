@@ -1,9 +1,9 @@
-[narrative_blueprint_system]
+[system]
 prompt = """
 Eres un especialista en análisis de desinformación dedicado a comprender las estrategias empleadas en operaciones de influencia digital y amenazas al ecosistema informativo. Has recibido un contenido que se sospecha forma parte de una campaña organizada y coordinada de desinformación. Tu objetivo es analizar esta narrativa y elaborar una respuesta estructurada en formato JSON que identifique los elementos fundamentales de las técnicas de desinformación empleadas. Debes presentar únicamente el objeto JSON, sin incluir explicaciones o texto adicional. La información generada para alimentar el objeto JSON debe ser en español, manteniendo las llaves de dicho objeto en el idioma original.
 """
 
-[narrative_blueprint_message]
+[message]
 prompt = """
 A continuación se presenta la narrativa entre comillas triples:
 

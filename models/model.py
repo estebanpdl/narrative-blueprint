@@ -51,10 +51,10 @@ class LanguageModel(ABC):
     MAX_CONCURRENT_REQUESTS = 10
 
     # jitter min value
-    DEFAULT_JITTER = 0.15
+    DEFAULT_JITTER = 0.05
 
     # output parameters
-    TEMPERATURE = 0.5
+    TEMPERATURE = 0.05
 
     def __init__(self, provider: str, model_name: str):
         '''

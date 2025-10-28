@@ -2,7 +2,7 @@
 
 # 🔍 Narrative Blueprint
 
-**AI-Powered Narrative Analysis for Information Intelligence**
+**AI-Assisted Narrative Analysis**
 
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Database-green.svg)
@@ -22,7 +22,7 @@
 
 <br>
 
-Narrative Blueprint is an AI-driven analysis framework that utilizes LLMs to systematically analyze narratives, content patterns, and information structures. The tool is particularly powerful for information warfare and disinformation analysis, but its flexibility makes it valuable for any domain requiring structured narrative intelligence.
+Narrative Blueprint is an AI-driven analysis framework that uses LLMs to analyze narratives, content patterns, and information structures. The tool is particularly powerful for information warfare and disinformation analysis, but its flexibility makes it valuable for any domain requiring structured narrative intelligence.
 
 ## ✨ Key Features
 

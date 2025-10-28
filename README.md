@@ -196,49 +196,10 @@ Results are stored in MongoDB as JSON documents with structured analysis:
 }
 ```
 
-## 🔒 Information Threat Intelligence
-
-### Specialized Analysis Dimensions
-- **Tactic Classification**: Identify specific disinformation techniques
-- **Target Audience Profiling**: Understand intended recipients
-- **Intent Recognition**: Decode underlying objectives
+## Analysis Dimensions
+- **Target Audience Profiling**: Understand intended audience
+- **Intent Recognition**: Underlying objectives
 - **Actor Attribution**: Link narratives to potential sources
-- **Claim Verification**: Extract testable assertions
-
-### Intelligence Reporting
-The tool generates structured intelligence reports suitable for:
-- **Threat Assessment**: Understanding adversarial capabilities
-- **Campaign Tracking**: Monitoring information operations over time
-- **Attribution Analysis**: Connecting narratives to threat actors
-- **Impact Assessment**: Measuring narrative reach and effectiveness
-
-## 🔧 Development Status
-
-**This tool is actively under development.** Upcoming enhancements include:
-
-- **Additional LLM Providers**: Anthropic Claude, Google Gemini integration
-- **Advanced Analytics**: Statistical analysis and visualization components
-- **Enhanced Prompt Library**: Domain-specific templates for various use cases
-- **API Interface**: RESTful API for integration with other tools
-- **Dashboard Interface**: Web-based analysis and visualization
-
-## 🤝 Contributing
-
-We encourage contributions, especially:
-- **Custom Prompt Templates**: Share domain-specific analysis frameworks
-- **Dataset Examples**: Provide anonymized sample datasets
-- **Analysis Techniques**: Contribute novel analytical approaches
-- **Documentation**: Improve setup guides and use case examples
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- OpenAI for providing the LLM capabilities
-- MongoDB for scalable data storage
-- The information security community for inspiration and use cases
 
 ---
 

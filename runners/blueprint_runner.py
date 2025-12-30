@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # language models
-from models import OpenAIGPT
+from models import get_llm_engine
 
 # import blueprint
 from narrative_blueprint import NarrativeBlueprint
@@ -20,7 +20,7 @@ def handle_blueprint(args: dict) -> None:
     model = args['model']
 
     # llm engine
-    llm_engine = OpenAIGPT(model_name=model)
+    llm_engine = get_llm_engine(model_name=model)
 
     # blueprint
     blueprint = NarrativeBlueprint(

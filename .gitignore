@@ -10,5 +10,7 @@ __pycache__/
 # ignore local logs and datasets
 logs/
 
-# local prompts
+# local directories
+notebooks/
+datasets/
 prompts/

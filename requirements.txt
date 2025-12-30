@@ -1,9 +1,9 @@
-anthropic
 google-genai
-networkx
 openai
+openpyxl
 pandas
 pymongo
+python-dotenv
 requests
 tiktoken
 tomli

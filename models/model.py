@@ -54,7 +54,7 @@ class LanguageModel(ABC):
     DEFAULT_JITTER = 0.05
 
     # output parameters
-    TEMPERATURE = 0.05
+    TEMPERATURE = 1
 
     def __init__(self, provider: str, model_name: str):
         '''

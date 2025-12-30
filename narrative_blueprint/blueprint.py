@@ -241,6 +241,5 @@ class NarrativeBlueprint:
             uuids=uuids,
             messages=messages_list,
             mongo_db_name=self.mongo_db_name,
-            mongo_collection_name=self.mongo_collection_name,
-            response_format={'type': 'json_object'}
+            mongo_collection_name=self.mongo_collection_name
         )

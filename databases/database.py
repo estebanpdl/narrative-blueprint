@@ -13,4 +13,33 @@ class Database(ABC):
     '''
     Database abstract base class
     '''
-    pass
+
+    @abstractmethod
+    def insert_one(self, document: dict) -> None:
+        '''
+        Store a single result document.
+
+        :param document: The document to store.
+        :type document: dict
+        '''
+        pass
+
+    @abstractmethod
+    def get_collected_uuids(self) -> list:
+        '''
+        Return list of already-processed UUIDs.
+
+        :return: A list of UUIDs.
+        :rtype: list
+        '''
+        pass
+
+    @abstractmethod
+    def test_access(self) -> bool:
+        '''
+        Verify the backend is usable.
+
+        :return: True if access is successful.
+        :rtype: bool
+        '''
+        pass

@@ -29,7 +29,7 @@ def create_blueprint_parser(parser: ArgumentParser) -> ArgumentParser:
         type=str,
         default='gpt-4o-mini',
         metavar='',
-        help='OpenAI model to use for blueprint generation'
+        help='OpenAI/Google model to use for blueprint generation'
     )
 
     blueprint_arguments.add_argument(
@@ -65,6 +65,19 @@ def create_blueprint_parser(parser: ArgumentParser) -> ArgumentParser:
         help='Number of narratives to process for blueprint generation'
     )
 
+    # output arguments
+    output_arguments = parser.add_argument_group(
+        'Output arguments'
+    )
+
+    output_arguments.add_argument(
+        '--output',
+        type=str,
+        metavar='',
+        default=None,
+        help='Path to a JSON file for storing results (alternative to MongoDB)'
+    )
+
     # blueprint MongoDB arguments
     blueprint_mongodb_arguments = parser.add_argument_group(
         'Blueprint MongoDB arguments'
@@ -73,8 +86,7 @@ def create_blueprint_parser(parser: ArgumentParser) -> ArgumentParser:
     blueprint_mongodb_arguments.add_argument(
         '--mongo-db-name',
         type=str,
-        required=True,
-        default='narrative-blueprint',
+        default=None,
         metavar='',
         help='Name of the MongoDB database to store the blueprint'
     )
@@ -82,7 +94,7 @@ def create_blueprint_parser(parser: ArgumentParser) -> ArgumentParser:
     blueprint_mongodb_arguments.add_argument(
         '--mongo-collection-name',
         type=str,
-        required=True,
+        default=None,
         metavar='',
         help='Name of the MongoDB collection to store the blueprint'
     )

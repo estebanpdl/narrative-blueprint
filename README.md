@@ -5,7 +5,6 @@
 **AI-Assisted Narrative Analysis**
 
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)
-![MongoDB](https://img.shields.io/badge/MongoDB-Database-green.svg)
 ![Active Development](https://img.shields.io/badge/status-active%20development-orange.svg)
 ![Open Source](https://img.shields.io/badge/open%20source-MIT-blue.svg)
 ![AI Research](https://img.shields.io/badge/AI-research-purple.svg)
@@ -27,17 +26,15 @@ Narrative Blueprint is an AI-driven analysis framework that uses LLMs to analyze
 ## ✨ Key Features
 
 ### 🧠 AI-Powered Analysis
-- **LLM Integration**: Seamlessly works with OpenAI's GPT models for sophisticated narrative understanding. New models and providers will be added.
+- **Multi-Provider LLM Support**: Works with OpenAI GPT and Google Gemini models
 - **Multilingual Prompt Support**: Create analysis instructions in any language - English, Spanish, or any language of your choice
 
 ### 📊 Intelligence Capabilities
 - **Narrative Pattern Recognition**: Identify recurring themes, tactics, and messaging strategies
 - **Content Categorization**: Systematically classify narratives across multiple dimensions
-- **Threat Intelligence**: Extract actionable insights for information security applications
-- **Disinformation Detection**: Specialized prompts for identifying manipulation tactics
 
 ### 🔧 Technical Architecture
-- **MongoDB Integration**: Scalable storage for analysis results and metadata
+- **Flexible Storage**: Save results to MongoDB or JSON files
 - **Parallel Processing**: Efficient batch analysis of large narrative datasets
 - **Custom Prompt Engineering**: Flexible template system for domain-specific analysis
 - **Multi-format Support**: Process CSV, XLSX, and JSON input files
@@ -59,9 +56,8 @@ Narrative Blueprint is an AI-driven analysis framework that uses LLMs to analyze
 
 ### Prerequisites
 - Python 3.8+
-- MongoDB instance.
-    - Currently. Local support only.
-- OpenAI API key
+- OpenAI API key and/or Google Gemini API key
+- MongoDB instance (optional — only needed when using MongoDB storage)
 
 ### Setup
 ```bash
@@ -73,7 +69,10 @@ cd narrative-blueprint
 pip install -r requirements.txt
 
 # Set up environment variables
-export OPENAI_API_KEY="your-openai-api-key"
+cp config/.env.template config/.env
+# Edit config/.env and add your API keys:
+#   OPENAI_API_KEY=your-openai-api-key
+#   GEMINI_API_KEY=your-gemini-api-key
 ```
 
 ## 📋 Dataset Requirements
@@ -103,7 +102,7 @@ uuid,narrative
     "narrative": "This is a sample narrative text for analysis..."
   },
   {
-    "uuid": "67890", 
+    "uuid": "67890",
     "narrative": "Another narrative example with different content..."
   }
 ]
@@ -134,14 +133,23 @@ Analysis instructions with ${narrative} placeholder...
 ### Custom Template Development
 You can create domain-specific analysis by:
 1. Writing your analysis framework in the system prompt (in any language)
-2. Defining the desired JSON output structure 
+2. Defining the desired JSON output structure
 3. Customizing analysis dimensions for your specific use case
 4. Adapting prompts for different languages and cultural contexts
 5. Testing and refining your prompts for better results
 
 ## 🚀 Usage
 
-### Basic Analysis
+### JSON File Output (no MongoDB required)
+```bash
+python main.py \
+  --model gpt-4o-mini \
+  --prompt-template prompt_examples/narrative_blueprint_EN.toml \
+  --narrative-path data/narratives.csv \
+  --output results.json
+```
+
+### MongoDB Output
 ```bash
 python main.py \
   --model gpt-4o-mini \
@@ -151,28 +159,47 @@ python main.py \
   --mongo-collection-name results
 ```
 
-### Advanced Options
+### Using Google Gemini
+```bash
+python main.py \
+  --model gemini-2.5-flash-preview-05-20 \
+  --prompt-template prompt_examples/narrative_blueprint_EN.toml \
+  --narrative-path data/narratives.csv \
+  --output results.json
+```
+
+### Limiting Sample Size
 ```bash
 python main.py \
   --model gpt-4o \
   --prompt-template custom_analysis.toml \
   --narrative-path large_dataset.xlsx \
   --sample-size 1000 \
-  --mongo-db-name intelligence-db \
-  --mongo-collection-name campaign-analysis
+  --output analysis_results.json
 ```
 
 ### Command-Line Arguments
-- `--model`: OpenAI model selection (default: gpt-4o-mini)
-- `--prompt-template`: Path to TOML prompt template (required)
-- `--narrative-path`: Path to narrative dataset (required)
-- `--sample-size`: Limit analysis to N narratives
-- `--mongo-db-name`: MongoDB database name (required)
-- `--mongo-collection-name`: MongoDB collection name (required)
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--model` | No | `gpt-4o-mini` | LLM model to use (OpenAI or Gemini) |
+| `--prompt-template` | Yes | — | Path to TOML prompt template |
+| `--narrative-path` | Yes | — | Path to narrative dataset |
+| `--sample-size` | No | all | Limit analysis to N narratives |
+| `--output` | No | — | Path to JSON output file |
+| `--mongo-db-name` | No* | — | MongoDB database name |
+| `--mongo-collection-name` | No* | — | MongoDB collection name |
+
+\* `--mongo-db-name` and `--mongo-collection-name` are required when `--output` is not provided.
+
+### Storage Behavior
+
+- **MongoDB**: Each result is stored in real time as it is processed. This provides resilience against interruptions — completed results are persisted immediately.
+- **JSON file**: Results are written to the file after all processing completes. If the output file already exists, previously processed UUIDs are skipped (deduplication).
 
 ## 📊 Output Structure
 
-Results are stored in MongoDB as JSON documents with structured analysis:
+Results are stored as JSON documents with structured analysis:
 
 ```json
 {
@@ -195,11 +222,6 @@ Results are stored in MongoDB as JSON documents with structured analysis:
   ]
 }
 ```
-
-## Analysis Dimensions
-- **Target Audience Profiling**: Understand intended audience
-- **Intent Recognition**: Underlying objectives
-- **Actor Attribution**: Link narratives to potential sources
 
 ---
 

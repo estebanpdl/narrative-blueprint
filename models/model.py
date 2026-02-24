@@ -280,12 +280,24 @@ class LanguageModel(ABC):
         pass
 
     @abstractmethod
-    def run_parallel_prompt_tasks(self, messages: list) -> None:
+    def run_parallel_prompt_tasks(self,
+                                  uuids: list,
+                                  messages: list,
+                                  on_result: callable = None) -> list:
         '''
-        Process multiple messages in a single call.
+        Process multiple messages in parallel.
+
+        :param uuids: List of UUIDs to process.
+        :type uuids: list
 
         :param messages: List of messages to be processed.
         :type messages: list
-        :return: None
+
+        :param on_result: Optional callback invoked with each result document
+            as soon as it is ready. Used for real-time persistence.
+        :type on_result: callable, optional
+
+        :return: List of result documents (dicts with 'uuid' key).
+        :rtype: list
         '''
         pass

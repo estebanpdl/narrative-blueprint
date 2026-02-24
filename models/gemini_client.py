@@ -25,21 +25,18 @@ from google import genai
 from google.genai import types
 from google.genai.errors import ClientError
 
-# MongoDB connection
-from databases import MongoDBManager
-
 # Gemini class
 class GeminiModels(LanguageModel):
     '''
     GeminiModels class for interacting with Google's Gemini API.
 
     This class provides methods to generate responses using the specified
-    Gemini model, manage token usage, and log responses to a MongoDB database.
+    Gemini model, manage token usage, and return structured results.
 
     Public Methods:
     - get_log_file: Returns the path to the log file.
     - _estimate_tokens: Estimates the number of tokens in a given prompt.
-    - _process_response: Processes the API response and logs it to MongoDB.
+    - _process_response: Processes the API response and returns a document.
     - _call_with_backoff: Calls the Gemini API with a backoff strategy.
     - run_parallel_prompt_tasks: Executes multiple prompt tasks in parallel.
 
@@ -47,7 +44,6 @@ class GeminiModels(LanguageModel):
     - client: Gemini client instance.
     - model_name: Name of the Gemini model.
     - log_file: Path to the log file.
-    - mongodb_manager: MongoDB connection manager.
     '''
     def __init__(self, model_name: str):
         '''
@@ -69,9 +65,6 @@ class GeminiModels(LanguageModel):
         # log file
         self.log_file = './logs/gemini_client.log'
 
-        # MongoDB connection
-        self.mongodb_manager = MongoDBManager()
-
     def get_log_file(self) -> str:
         '''
         Get the log file path.
@@ -80,7 +73,7 @@ class GeminiModels(LanguageModel):
         :rtype: str
         '''
         return self.log_file
-    
+
     def _estimate_tokens(self, system_prompt: str, user_prompt: str) -> int:
         '''
         '''
@@ -96,11 +89,9 @@ class GeminiModels(LanguageModel):
 
     def _process_response(self,
                           uuid: str,
-                          response: types.GenerateContentResponse,
-                          mongo_db_name: str,
-                          mongo_collection_name: str) -> None:
+                          response: types.GenerateContentResponse) -> dict:
         '''
-        Process the API response and log it to MongoDB.
+        Process the API response and return a result document.
 
         :param uuid: The UUID of the narrative being processed.
         :type uuid: str
@@ -108,14 +99,8 @@ class GeminiModels(LanguageModel):
         :param response: The response from the Gemini API.
         :type response: types.GenerateContentResponse
 
-        :param mongo_db_name: Name of the MongoDB database.
-        :type mongo_db_name: str
-
-        :param mongo_collection_name: Name of the MongoDB collection.
-        :type mongo_collection_name: str
-
-        :raises Exception: If there is an error during processing or logging.
-        :return: None
+        :return: Parsed response document with uuid.
+        :rtype: dict
         '''
         # get tokens used
         prompt_tokens_used = response.usage_metadata.prompt_token_count
@@ -139,25 +124,15 @@ class GeminiModels(LanguageModel):
         # add uuid to response
         response_content['uuid'] = uuid
 
-        # get collection
-        collection = self.mongodb_manager.get_collection(
-            db_name=mongo_db_name,
-            collection_name=mongo_collection_name   
-        )
+        return response_content
 
-        # upload response to database
-        collection.insert_one(
-            response_content
-        )
-    
     def _call_with_backoff(self,
                            request_id: int,
                            uuid: str,
                            message: list[dict],
-                           mongo_db_name: str,
-                           mongo_collection_name: str,
                            pbar: tqdm,
-                           max_retries: int = 5) -> None:
+                           on_result: callable = None,
+                           max_retries: int = 5) -> dict:
         '''
         Call the Gemini API with a backoff strategy for handling rate limits.
 
@@ -170,21 +145,14 @@ class GeminiModels(LanguageModel):
         :param message: The message prompt to be processed.
         :type message: list[dict]
 
-        :param mongo_db_name: Name of the MongoDB database.
-        :type mongo_db_name: str
-
-        :param mongo_collection_name: Name of the MongoDB collection.
-        :type mongo_collection_name: str
-
         :param pbar: Tqdm progress bar for tracking progress.
         :type pbar: tqdm
 
         :param max_retries: Maximum number of retries for the request (default 5).
         :type max_retries: int
 
-        :raises RateLimitError: If the request exceeds the rate limit.
-        :raises Exception: For other unexpected errors.
-        :return: None
+        :return: Parsed result document, or None on failure.
+        :rtype: dict or None
         '''
         retry_count = 0
         while not self.stop_flag.is_set() and retry_count <= max_retries:
@@ -224,15 +192,16 @@ class GeminiModels(LanguageModel):
                     )
 
                     # process response
-                    self._process_response(
+                    result = self._process_response(
                         uuid=uuid,
                         response=response,
-                        mongo_db_name=mongo_db_name,
-                        mongo_collection_name=mongo_collection_name
                     )
 
-                    return
-                
+                    if on_result is not None:
+                        on_result(result)
+
+                    return result
+
                 except ClientError as e_client_error:
                     if e_client_error.code == 429:
                         # update progress bar
@@ -245,7 +214,7 @@ class GeminiModels(LanguageModel):
                         self._log_write(
                             f'Rate limit exceeded for prompt #{request_id} - {e_client_error}'
                         )
-                        
+
                         # increment retry count and calculate sleep time
                         retry_count += 1
                         random_jitter = random.uniform(0, self.DEFAULT_JITTER)
@@ -253,7 +222,7 @@ class GeminiModels(LanguageModel):
                         self.stop_flag.wait(sleep_time)
                     else:
                         raise e_client_error
-                
+
                 except Exception as e:
                     # handle unexpected errors
                     self._update_tqdm_description(
@@ -263,31 +232,30 @@ class GeminiModels(LanguageModel):
 
                     # capture full traceback
                     tb_str = traceback.format_exc()
-                    
+
                     # write to log file
                     e_name = e.__class__.__name__
                     self._log_write(
                         f'[ERROR] prompt #{uuid} error: {e_name} - {e}\nTraceback:\n{tb_str}'
                     )
 
-                    return
-        
+                    return None
+
         # exceeded max retries
         if retry_count > max_retries:
             self._update_tqdm_description(
                 pbar,
                 f'[FAILED] prompt #{request_id} exceeded retries'
             )
-            
+
             # write to log file
-            self._log_write(f"[FAILED] prompt #{uuid} exceeded retries - {e_rate_limit}")
-            return
+            self._log_write(f"[FAILED] prompt #{uuid} exceeded retries - {e_client_error}")
+            return None
 
     def run_parallel_prompt_tasks(self,
                                   uuids: list,
                                   messages: list,
-                                  mongo_db_name: str,
-                                  mongo_collection_name: str) -> None:
+                                  on_result: callable = None) -> list:
         '''
         Run multiple prompt tasks in parallel with thread pooling and
         rate-limiting.
@@ -298,16 +266,17 @@ class GeminiModels(LanguageModel):
         :param messages: List of message prompts to process.
         :type messages: list
 
-        :param mongo_db_name: Name of the MongoDB database.
-        :type mongo_db_name: str
+        :param on_result: Optional callback invoked with each result document
+            as soon as it is ready.
+        :type on_result: callable, optional
 
-        :param mongo_collection_name: Name of the MongoDB collection.
-        :type mongo_collection_name: str
-
-        :raises Exception: If there is an error during execution.
-        :return: None
+        :return: List of result documents.
+        :rtype: list
         '''
         signal.signal(signal.SIGINT, self._signal_handler)
+
+        results = []
+        results_lock = __import__('threading').Lock()
 
         # total tasks
         total_tasks = len(messages)
@@ -319,9 +288,8 @@ class GeminiModels(LanguageModel):
                         i,
                         uuid,
                         message,
-                        mongo_db_name,
-                        mongo_collection_name,
-                        pbar
+                        pbar,
+                        on_result
                     ): i
                     for i, (uuid, message) in enumerate(zip(uuids, messages))
                 }
@@ -330,7 +298,12 @@ class GeminiModels(LanguageModel):
                     for future in done:
                         futures.pop(future)
                         try:
-                            future.result()
+                            result = future.result()
+                            if result is not None:
+                                with results_lock:
+                                    results.append(result)
                         except Exception as e:
                             pass
                         pbar.update(1)
+
+        return results

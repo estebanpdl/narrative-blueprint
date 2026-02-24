@@ -23,8 +23,8 @@
             "tpm": 2000000
         },
         "gemini-2.5-flash-lite": {
-            "rpm": 10,
-            "tpm": 250000
+            "rpm": 4000,
+            "tpm": 4000000
         }
     },
     "openai": {

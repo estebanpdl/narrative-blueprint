@@ -10,31 +10,32 @@ import pandas as pd
 # import LLM base class
 from models import LanguageModel
 
-# MongoDB connection
-from databases import MongoDBManager
-
-# MongoDB errors
-from pymongo.errors import ConnectionFailure
+# import Database base class
+from databases.database import Database
+from databases.json_file import JSONFileManager
 
 # Narrative blueprint class
 class NarrativeBlueprint:
     '''
     Narrative blueprint class
     '''
-    def __init__(self, llm_engine: LanguageModel, args: dict = None):
+    def __init__(self, llm_engine: LanguageModel, storage: Database, args: dict = None):
         '''
         Initialize the Narrative Blueprint engine.
-        
+
         :param llm_engine: The LLM engine to be used for narrative blueprint
             processing. Must be a subclass of `LanguageModel`.
 
             Available options:
             - OpenAIGPT: models/openai_client.py
-        
+
         :type llm_engine: LanguageModel
 
         :raises TypeError: If the provided `llm_engine` is not a subclass
             of `LanguageModel`.
+
+        :param storage: The storage backend for results.
+        :type storage: Database
 
         :param args: Additional arguments to be passed to the Narrative Blueprint framework.
         :type args: dict
@@ -51,19 +52,17 @@ class NarrativeBlueprint:
         # LLM engine
         if not isinstance(llm_engine, LanguageModel):
             raise TypeError('llm_engine must be an instance of LanguageModel')
-        
+
         self.llm_engine = llm_engine
 
-        # MongoDB manager
-        self.mongodb_manager = MongoDBManager()
-        self.mongo_db_name = self.args.get('mongo_db_name')
-        self.mongo_collection_name = self.args.get('mongo_collection_name')
+        # storage backend
+        self.storage = storage
 
         # load narratives
         narrative_path = self.args.get('narrative_path')
         if not narrative_path:
             raise ValueError('The `narrative_path` argument is required')
-        
+
         self.narratives = self._load_narratives(narrative_path)
 
         # check required columns in narratives dataset
@@ -76,7 +75,7 @@ class NarrativeBlueprint:
             raise ValueError(
                 f'Narratives dataset missing required columns: {missing_columns}'
             )
-        
+
         # sample size from args
         self.sample_size = self.args.get('sample_size', None)
 
@@ -93,10 +92,10 @@ class NarrativeBlueprint:
         # load prompts
         with open(template_path, 'rb') as file:
             prompts = tomli.load(file)
-        
+
         # get the system prompt
         return prompts.get('system')['prompt']
-    
+
     def _load_message_prompt(self, template_path: str, narrative: str = None) -> str:
         '''
         Load the message prompt from a template file.
@@ -113,7 +112,7 @@ class NarrativeBlueprint:
         # load prompts
         with open(template_path, 'rb') as file:
             prompts = tomli.load(file)
-        
+
         # get the message prompt
         message_prompt = prompts.get('message')['prompt']
 
@@ -121,7 +120,7 @@ class NarrativeBlueprint:
         return string.Template(message_prompt).substitute(
             narrative=narrative
         )
-    
+
     def _load_narratives(self, path: str = None) -> pd.DataFrame:
         '''
         Load the narratives from a CSV, XLSX, or JSON file.
@@ -136,17 +135,17 @@ class NarrativeBlueprint:
         try:
             # get file extension
             file_extension = os.path.splitext(path)[1].lower()
-            
+
             if file_extension == '.csv':
                 return pd.read_csv(path, encoding='utf-8', low_memory=False)
-            
+
             elif file_extension in ['.xlsx', '.xls']:
                 return pd.read_excel(path)
-            
+
             elif file_extension == '.json':
                 with open(path, 'r', encoding='utf-8') as file:
                     data = json.load(file)
-                
+
                 # handle different JSON structures
                 if isinstance(data, list):
                     # e.g., [{'uuid': '...', 'narrative': '...'}, ...]
@@ -156,24 +155,21 @@ class NarrativeBlueprint:
                     return pd.DataFrame([data])
                 else:
                     raise ValueError(f'Unsupported JSON structure in {path}')
-            
+
             else:
                 raise ValueError(
                     f'Unsupported file format: {file_extension}. Supported formats: .csv, .xlsx, .xls, .json'
                 )
-        
+
         except Exception as e:
             raise ValueError(f'Error loading narratives from {path}: {str(e)}')
-    
+
     def _load_uuids_from_collection(self) -> list:
         '''
-        Load the uuids from a MongoDB collection.
+        Load the uuids from the storage backend.
         '''
-        return self.mongodb_manager.get_collected_uuids(
-            self.mongo_db_name,
-            self.mongo_collection_name
-        )
-    
+        return self.storage.get_collected_uuids()
+
     def _compose_blueprint_messages(self) -> tuple:
         '''
         Prepare the messages for the LLM.
@@ -200,31 +196,21 @@ class NarrativeBlueprint:
                 {'role': 'user', 'content': user_prompt}
             ]
             messages_list.append(message)
-        
+
         return self.narratives['uuid'].tolist(), messages_list
-    
+
     def run_blueprint_analysis(self) -> None:
         '''
         Run the blueprint analysis.
 
-        :raises ConnectionFailure: If connection to MongoDB fails.
+        :raises RuntimeError: If the storage backend is not accessible.
         '''
-        # Test MongoDB access to database and collection before proceeding
-        print('Testing MongoDB acccess to database...')
-        mongodb_response = self.mongodb_manager.test_access_to_db_and_collection(
-            self.mongo_db_name,
-            self.mongo_collection_name
-        )
-        if not mongodb_response:
-            print ('MongoDB access to database or collection failed')
-            print ('')
+        # Test storage access before proceeding
+        print('Testing storage backend access...')
+        if not self.storage.test_access():
+            raise RuntimeError('Storage backend access failed')
 
-            details = f'<<{self.mongo_db_name}>> and <<{self.mongo_collection_name}>>'
-            raise ConnectionFailure(
-                f'MongoDB access to database failed for {details}'
-            )
-        
-        print('MongoDB access to database successful')
+        print('Storage backend access successful')
         print ('')
 
         # compose messages
@@ -237,9 +223,21 @@ class NarrativeBlueprint:
 
         # run parallel prompt tasks
         print('Running narrative blueprint analysis...')
-        self.llm_engine.run_parallel_prompt_tasks(
+
+        # real-time storage for non-JSON backends (e.g. MongoDB)
+        # JSON backend batches writes at the end
+        use_realtime = not isinstance(self.storage, JSONFileManager)
+        on_result = self.storage.insert_one if use_realtime else None
+
+        results = self.llm_engine.run_parallel_prompt_tasks(
             uuids=uuids,
             messages=messages_list,
-            mongo_db_name=self.mongo_db_name,
-            mongo_collection_name=self.mongo_collection_name
+            on_result=on_result,
         )
+
+        # batch-write for JSON backend
+        if not use_realtime:
+            for doc in results:
+                self.storage.insert_one(doc)
+
+        print(f'Stored {len(results)} results')

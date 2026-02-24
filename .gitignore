@@ -10,7 +10,14 @@ __pycache__/
 # ignore local logs and datasets
 logs/
 
-# local directories
+# NarrativeBlueprint local directories
 notebooks/
 datasets/
 prompts/
+
+# NarrativeBlueprint specifics
+*.md
+*.csv
+
+# README.md
+!README.md

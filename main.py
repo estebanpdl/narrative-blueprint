@@ -6,8 +6,15 @@ import time
 # import key arguments
 from cli import parser
 
-# import blueprint runner
+# import runners
 from runners.blueprint_runner import handle_blueprint
+from runners.embeddings_runner import handle_embeddings
+
+# command dispatcher
+command_dispatcher = {
+    'blueprint': handle_blueprint,
+    'embeddings': handle_embeddings
+}
 
 def main():
     # parse arguments
@@ -20,8 +27,9 @@ def main():
     '''
     print ('\n\n' + ' '.join(log_text.split()).strip() + '\n\n')
 
-    # process blueprint arguments directly
-    handle_blueprint(args)
+    # command dispatcher
+    command = args.pop('command')
+    command_dispatcher[command](args)
 
     # end process
     log_text = f'''

@@ -10,6 +10,7 @@ from utils.argparse_formatter import CustomHelpFormatter
 
 # command parsers
 from cli.blueprint_parser import create_blueprint_parser
+from cli.embeddings_parser import create_embeddings_parser
 
 # create main parser
 def create_main_parser():
@@ -33,8 +34,19 @@ def create_main_parser():
         help='Show this help message and exit'
     )
 
-    # integrate blueprint parser directly
-    create_blueprint_parser(parser)
+    # subparsers container
+    subparsers = parser.add_subparsers(
+        title='Available commands',
+        metavar='',
+        dest='command'
+    )
+
+    # required subparsers
+    subparsers.required = True
+
+    # integrate parsers
+    create_blueprint_parser(subparsers)
+    create_embeddings_parser(subparsers)
 
     return parser
 

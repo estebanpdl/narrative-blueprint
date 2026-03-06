@@ -9,18 +9,36 @@ from argparse import (
 from utils.argparse_formatter import CustomHelpFormatter
 
 # create blueprint parser
-def create_blueprint_parser(parser: ArgumentParser) -> ArgumentParser:
+def create_blueprint_parser(subparsers: ArgumentParser) -> ArgumentParser:
     '''
     Create blueprint parser
 
-    :param parser: The main parser to add blueprint arguments to.
-    :type parser: ArgumentParser
+    :param subparsers: The subparsers to be used for the blueprint parser.
+    :type subparsers: ArgumentParser
 
     :return: The blueprint parser.
     :rtype: ArgumentParser
     '''
+    # blueprint parser
+    blueprint_parser = subparsers.add_parser(
+        'blueprint',
+        help='Generate structured narrative blueprints for disinformation analysis',
+        formatter_class=CustomHelpFormatter,
+        add_help=False
+    )
+
+    # help options
+    blueprint_help = blueprint_parser.add_argument_group('Options')
+    blueprint_help.add_argument(
+        '-h',
+        '--help',
+        action='help',
+        default=SUPPRESS,
+        help='Show blueprint command help'
+    )
+
     # blueprint arguments
-    blueprint_arguments = parser.add_argument_group(
+    blueprint_arguments = blueprint_parser.add_argument_group(
         'Blueprint arguments'
     )
 
@@ -66,7 +84,7 @@ def create_blueprint_parser(parser: ArgumentParser) -> ArgumentParser:
     )
 
     # output arguments
-    output_arguments = parser.add_argument_group(
+    output_arguments = blueprint_parser.add_argument_group(
         'Output arguments'
     )
 
@@ -79,7 +97,7 @@ def create_blueprint_parser(parser: ArgumentParser) -> ArgumentParser:
     )
 
     # blueprint MongoDB arguments
-    blueprint_mongodb_arguments = parser.add_argument_group(
+    blueprint_mongodb_arguments = blueprint_parser.add_argument_group(
         'Blueprint MongoDB arguments'
     )
 
@@ -99,4 +117,4 @@ def create_blueprint_parser(parser: ArgumentParser) -> ArgumentParser:
         help='Name of the MongoDB collection to store the blueprint'
     )
 
-    return parser
+    return blueprint_parser

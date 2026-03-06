@@ -25,11 +25,31 @@ class Database(ABC):
         pass
 
     @abstractmethod
+    def insert_many(self, data: list) -> None:
+        '''
+        Store multiple documents.
+
+        :param data: The documents to store.
+        :type data: list
+        '''
+        pass
+
+    @abstractmethod
     def get_collected_uuids(self) -> list:
         '''
         Return list of already-processed UUIDs.
 
         :return: A list of UUIDs.
+        :rtype: list
+        '''
+        pass
+
+    @abstractmethod
+    def get_documents(self) -> list:
+        '''
+        Retrieve all documents.
+
+        :return: A list of documents.
         :rtype: list
         '''
         pass

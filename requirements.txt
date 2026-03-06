@@ -1,10 +1,12 @@
 google-genai
+networkx
 openai
 openpyxl
 pandas
 pymongo
 python-dotenv
 requests
+scikit-learn
 tiktoken
 tomli
 tqdm

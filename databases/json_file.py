@@ -41,6 +41,18 @@ class JSONFileManager(Database):
             with open(self.output_path, 'w', encoding='utf-8') as f:
                 json.dump(self._results, f, indent=2, ensure_ascii=False)
 
+    def insert_many(self, data: list) -> None:
+        '''
+        Append multiple documents to the in-memory list and write to file.
+
+        :param data: The documents to store.
+        :type data: list
+        '''
+        with self._lock:
+            self._results.extend(data)
+            with open(self.output_path, 'w', encoding='utf-8') as f:
+                json.dump(self._results, f, indent=2, ensure_ascii=False)
+
     def get_collected_uuids(self) -> list:
         '''
         Return UUIDs already present in the output file.
@@ -49,6 +61,15 @@ class JSONFileManager(Database):
         :rtype: list
         '''
         return [doc['uuid'] for doc in self._results if 'uuid' in doc]
+
+    def get_documents(self) -> list:
+        '''
+        Retrieve all documents from the in-memory list.
+
+        :return: A list of documents.
+        :rtype: list
+        '''
+        return list(self._results)
 
     def test_access(self) -> bool:
         '''

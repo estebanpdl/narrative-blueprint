@@ -12,13 +12,11 @@ from dotenv import load_dotenv
 
 # import base class
 from .base import VectorModel
+from databases.database import Database
 
 # Gemini related modules
 from google import genai
 from google.genai import types
-
-# MongoDB connection
-from databases import MongoDBManager
 
 # Embedding Model class
 class GeminiEmbeddingModel(VectorModel):
@@ -39,7 +37,8 @@ class GeminiEmbeddingModel(VectorModel):
     # max number of documents to process in one batch
     DOCS_PER_BATCH = 100
 
-    def __init__(self, model_name: str):
+    def __init__(self, model_name: str,
+                 task_type: str = 'SEMANTIC_SIMILARITY'):
         super().__init__()
 
         # load environment variables
@@ -54,13 +53,11 @@ class GeminiEmbeddingModel(VectorModel):
 
         # Gemini model
         self.model_name = model_name
+        self.task_type = task_type
 
         # get model limits
         self.max_requests_per_min = self.MODEL_LIMITS[self.model_name]['rpm']
         self.max_tokens_per_min = self.MODEL_LIMITS[self.model_name]['tpm']
-
-        # MongoDB manager (set during compute_embeddings)
-        self.mongodb_manager = None
 
     def estimate_tokens(self, text: str) -> int:
         '''
@@ -73,15 +70,6 @@ class GeminiEmbeddingModel(VectorModel):
         :rtype: int
         '''
         return len(text) // 4
-
-    def _insert_into_mongodb(self, data: list[dict]) -> None:
-        '''
-        Insert data into MongoDB.
-
-        :param data: The data to be inserted.
-        :type data: list[dict]
-        '''
-        self.mongodb_manager.insert_many(data)
 
     def _safe_embed_request(self,
                             uuids: list = None,
@@ -110,7 +98,7 @@ class GeminiEmbeddingModel(VectorModel):
                     model=f'models/{self.model_name}',
                     contents=batch_data,
                     config=types.EmbedContentConfig(
-                        task_type='semantic_similarity'
+                        task_type=self.task_type
                     )
                 )
 
@@ -121,13 +109,13 @@ class GeminiEmbeddingModel(VectorModel):
                         'text': batch_data[i],
                         'embedding': response.embeddings[i].values,
                         'model_name': self.model_name,
-                        'provider': 'Google'
+                        'provider': 'Google',
+                        'task_type': self.task_type
                     }
                     for i in range(len(uuids))
                 ]
 
-                # insert into MongoDB
-                self._insert_into_mongodb(data)
+                self._store_embeddings(data)
 
                 return
             except Exception as e:
@@ -277,8 +265,7 @@ class GeminiEmbeddingModel(VectorModel):
     def compute_embeddings(self,
                            uuids: list = None,
                            data: list[str] = None,
-                           mongo_db_name: str = None,
-                           mongo_collection_name: str = None) -> None:
+                           storage: Database = None) -> None:
         '''
         Compute the embeddings for the data.
 
@@ -288,17 +275,12 @@ class GeminiEmbeddingModel(VectorModel):
         :param data: The data to be computed.
         :type data: list[str]
 
-        :param mongo_db_name: The name of the MongoDB database.
-        :type mongo_db_name: str
-
-        :param mongo_collection_name: The name of the MongoDB collection.
-        :type mongo_collection_name: str
+        :param storage: Storage backend for embedding documents.
+        :type storage: Database
         '''
-        # initialize MongoDB manager for this run
-        self.mongodb_manager = MongoDBManager(
-            db_name=mongo_db_name,
-            collection_name=mongo_collection_name
-        )
+        if not isinstance(storage, Database):
+            raise TypeError('storage must be an instance of Database')
+        self.storage = storage
 
         # initialize rate limiting trackers
         rpm_start_time = time.time()

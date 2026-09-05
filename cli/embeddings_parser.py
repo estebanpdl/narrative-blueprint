@@ -73,9 +73,21 @@ def create_embeddings_parser(subparsers: ArgumentParser) -> ArgumentParser:
         '-o',
         '--output',
         type=str,
-        required=True,
+        default=None,
         metavar='',
-        help='Path where the embedding analysis results will be saved'
+        help=(
+            'Directory where embedding analysis results will be saved. '
+            'Required unless --skip-analysis is used'
+        )
+    )
+
+    embeddings_arguments.add_argument(
+        '--skip-analysis',
+        action='store_true',
+        help=(
+            'Compute and store embeddings without generating projector or '
+            'similarity-analysis files'
+        )
     )
 
     embeddings_arguments.add_argument(
@@ -86,6 +98,41 @@ def create_embeddings_parser(subparsers: ArgumentParser) -> ArgumentParser:
         help='Threshold for the similarity analysis'
     )
 
+    embeddings_arguments.add_argument(
+        '--gemini-task-type',
+        type=str.upper,
+        choices=[
+            'SEMANTIC_SIMILARITY', 'CLASSIFICATION', 'CLUSTERING',
+            'RETRIEVAL_DOCUMENT', 'RETRIEVAL_QUERY',
+            'CODE_RETRIEVAL_QUERY', 'QUESTION_ANSWERING',
+            'FACT_VERIFICATION'
+        ],
+        default=None,
+        metavar='',
+        help=(
+            'Task type for gemini-embedding-001 only. Defaults to '
+            'SEMANTIC_SIMILARITY'
+        )
+    )
+
+    # local embedding storage arguments
+    embeddings_storage_arguments = embeddings_parser.add_argument_group(
+        'Local embedding storage arguments'
+    )
+
+    embeddings_storage_arguments.add_argument(
+        '--embeddings-output',
+        '--embedding-output',
+        dest='embeddings_output',
+        type=str,
+        default=None,
+        metavar='',
+        help=(
+            'Path to store embeddings locally. Supported extensions: '
+            '.csv, .parquet, .db, .sqlite, .sqlite3. Alternative to MongoDB'
+        )
+    )
+
     # embeddings MongoDB arguments
     embeddings_mongodb_arguments = embeddings_parser.add_argument_group(
         'Embeddings MongoDB arguments'
@@ -94,8 +141,7 @@ def create_embeddings_parser(subparsers: ArgumentParser) -> ArgumentParser:
     embeddings_mongodb_arguments.add_argument(
         '--mongo-db-name',
         type=str,
-        required=True,
-        default='embeddings',
+        default=None,
         metavar='',
         help='Name of the MongoDB database to store the embeddings'
     )
@@ -103,8 +149,7 @@ def create_embeddings_parser(subparsers: ArgumentParser) -> ArgumentParser:
     embeddings_mongodb_arguments.add_argument(
         '--mongo-collection-name',
         type=str,
-        required=True,
-        default='embeddings',
+        default=None,
         metavar='',
         help='Name of the MongoDB collection to store the embeddings'
     )

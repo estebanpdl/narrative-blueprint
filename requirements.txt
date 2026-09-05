@@ -3,6 +3,7 @@ networkx
 openai
 openpyxl
 pandas
+pyarrow
 pymongo
 python-dotenv
 requests

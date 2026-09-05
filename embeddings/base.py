@@ -8,6 +8,8 @@ Defines VectorModel base class
 # import modules
 import os
 
+from databases.database import Database
+
 # import abstract base class
 from abc import ABC, abstractmethod
 
@@ -21,6 +23,7 @@ class VectorModel(ABC):
         Initialize VectorModel abstract base class
         '''
         self.log_file = './logs/vector_model_log.txt'
+        self.storage = None
 
     def _log_write(self, message: str) -> None:
         '''
@@ -40,12 +43,13 @@ class VectorModel(ABC):
         '''
         pass
 
-    @abstractmethod
-    def _insert_into_mongodb(self, data: list[dict]) -> None:
+    def _store_embeddings(self, data: list[dict]) -> None:
         '''
-        Insert data into MongoDB.
+        Store computed embedding documents.
         '''
-        pass
+        if self.storage is None:
+            raise RuntimeError('Embedding storage has not been configured')
+        self.storage.insert_many(data)
 
     @abstractmethod
     def _safe_embed_request(self, uuids: list,
@@ -61,8 +65,7 @@ class VectorModel(ABC):
     def compute_embeddings(self,
                            uuids: list,
                            data: list[str],
-                           mongo_db_name: str,
-                           mongo_collection_name: str) -> None:
+                           storage: Database) -> None:
         '''
         Compute embeddings for a list of strings.
         '''

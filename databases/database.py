@@ -63,3 +63,7 @@ class Database(ABC):
         :rtype: bool
         '''
         pass
+
+    def finalize(self) -> None:
+        '''Finalize pending writes for backends that require it.'''
+        return

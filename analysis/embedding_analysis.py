@@ -19,15 +19,17 @@ from networkx.algorithms.community import louvain_communities
 # embeddings
 from embeddings import VectorModel
 
-# MongoDB connection
-from databases import MongoDBManager
+# storage
+from databases.database import Database
 
 # Embedding Analysis class
 class EmbeddingAnalysis:
     '''
     EmbeddingAnalysis class
     '''
-    def __init__(self, vector_model: VectorModel, args: dict = None):
+    def __init__(self, vector_model: VectorModel,
+                 storage: Database,
+                 args: dict = None):
         '''
         Initializes the EmbeddingAnalysis pipeline, validating input arguments
         and preparing the dataset for embedding analysis.
@@ -51,6 +53,10 @@ class EmbeddingAnalysis:
 
         self.vector_model = vector_model
 
+        if not isinstance(storage, Database):
+            raise TypeError('storage must be an instance of Database')
+        self.storage = storage
+
         # load narratives
         narrative_path = self.args.get('narrative_path')
         if not narrative_path:
@@ -69,18 +75,14 @@ class EmbeddingAnalysis:
                 f'Narratives dataset missing required columns: {missing_columns}'
             )
 
-        # output path
-        self.output_path = self.args['output']
-        if not os.path.exists(self.output_path):
-            os.makedirs(self.output_path)
-
-        # MongoDB connection
-        self.mongo_db_name = self.args['mongo_db_name']
-        self.mongo_collection_name = self.args['mongo_collection_name']
-        self.mongodb_manager = MongoDBManager(
-            db_name=self.mongo_db_name,
-            collection_name=self.mongo_collection_name
-        )
+        self.skip_analysis = self.args.get('skip_analysis', False)
+        self.output_path = self.args.get('output')
+        if not self.skip_analysis:
+            if not self.output_path:
+                raise ValueError(
+                    'The `output` argument is required unless analysis is skipped'
+                )
+            os.makedirs(self.output_path, exist_ok=True)
 
         # community analysis results
         self.threshold = self.args['threshold']
@@ -381,15 +383,21 @@ class EmbeddingAnalysis:
         uuids = self.narratives['uuid'].tolist()
 
         # compute embeddings
-        self.vector_model.compute_embeddings(
-            uuids=uuids,
-            data=narratives,
-            mongo_db_name=self.mongo_db_name,
-            mongo_collection_name=self.mongo_collection_name
-        )
+        try:
+            self.vector_model.compute_embeddings(
+                uuids=uuids,
+                data=narratives,
+                storage=self.storage
+            )
+        finally:
+            self.storage.finalize()
 
-        # load embeddings from MongoDB
-        documents = self.mongodb_manager.get_documents()
+        if self.skip_analysis:
+            print('')
+            print('Analysis skipped. Embeddings have been stored.')
+            return
+
+        documents = self.storage.get_documents()
 
         # writing embeddings to projector
         print ('')

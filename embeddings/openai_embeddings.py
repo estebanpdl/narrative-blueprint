@@ -12,12 +12,10 @@ from dotenv import load_dotenv
 
 # import base class
 from .base import VectorModel
+from databases.database import Database
 
 # OpenAI related modules
 from openai import OpenAI, RateLimitError
-
-# MongoDB connection
-from databases import MongoDBManager
 
 # Embedding Model class
 class OpenAIEmbeddingModel(VectorModel):
@@ -75,9 +73,6 @@ class OpenAIEmbeddingModel(VectorModel):
         # model token encoding
         self.encoding = tiktoken.get_encoding(self.ENCODING)
 
-        # MongoDB manager (set during compute_embeddings)
-        self.mongodb_manager = None
-
     def estimate_tokens(self, text: str) -> int:
         '''
         Estimate the number of tokens in data.
@@ -89,15 +84,6 @@ class OpenAIEmbeddingModel(VectorModel):
         :rtype: int
         '''
         return len(self.encoding.encode(text))
-
-    def _insert_into_mongodb(self, data: list[dict]) -> None:
-        '''
-        Insert data into MongoDB.
-
-        :param data: The data to be inserted.
-        :type data: list[dict]
-        '''
-        self.mongodb_manager.insert_many(data)
 
     def _safe_embed_request(self,
                             uuids: list = None,
@@ -139,8 +125,7 @@ class OpenAIEmbeddingModel(VectorModel):
                     for i in range(len(uuids))
                 ]
 
-                # insert into MongoDB
-                self._insert_into_mongodb(data)
+                self._store_embeddings(data)
 
                 return
             except RateLimitError as e:
@@ -285,8 +270,7 @@ class OpenAIEmbeddingModel(VectorModel):
     def compute_embeddings(self,
                            uuids: list = None,
                            data: list[str] = None,
-                           mongo_db_name: str = None,
-                           mongo_collection_name: str = None) -> None:
+                           storage: Database = None) -> None:
         '''
         Compute the embeddings for the data.
 
@@ -296,17 +280,12 @@ class OpenAIEmbeddingModel(VectorModel):
         :param data: The data to be computed.
         :type data: list[str]
 
-        :param mongo_db_name: The name of the MongoDB database.
-        :type mongo_db_name: str
-
-        :param mongo_collection_name: The name of the MongoDB collection.
-        :type mongo_collection_name: str
+        :param storage: Storage backend for embedding documents.
+        :type storage: Database
         '''
-        # initialize MongoDB manager for this run
-        self.mongodb_manager = MongoDBManager(
-            db_name=mongo_db_name,
-            collection_name=mongo_collection_name
-        )
+        if not isinstance(storage, Database):
+            raise TypeError('storage must be an instance of Database')
+        self.storage = storage
 
         # initialize rate limiting trackers
         rpm_start_time = time.time()

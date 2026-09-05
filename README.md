@@ -34,7 +34,7 @@ Narrative Blueprint is an AI-driven analysis framework that uses LLMs to analyze
 - **Content Categorization**: Systematically classify narratives across multiple dimensions
 
 ### 🔧 Technical Architecture
-- **Flexible Storage**: Save results to MongoDB or JSON files
+- **Flexible Storage**: Save blueprints to MongoDB or JSON, and embeddings to MongoDB, CSV, Parquet, or SQLite
 - **Parallel Processing**: Efficient batch analysis of large narrative datasets
 - **Custom Prompt Engineering**: Flexible template system for domain-specific analysis
 - **Multi-format Support**: Process CSV, XLSX, and JSON input files
@@ -196,6 +196,74 @@ python main.py \
 
 - **MongoDB**: Each result is stored in real time as it is processed. This provides resilience against interruptions — completed results are persisted immediately.
 - **JSON file**: Results are written to the file after all processing completes. If the output file already exists, previously processed UUIDs are skipped (deduplication).
+
+## Embeddings
+
+The `embeddings` command stores vectors in MongoDB by default. Use
+`--embeddings-output` to select a local CSV, Parquet, or SQLite file instead.
+The existing `-o, --output` option remains the directory for projector and
+similarity-analysis files.
+
+### Store embeddings in CSV
+
+```bash
+python main.py embeddings \
+  --model text-embedding-3-small \
+  --narrative-path data/narratives.csv \
+  --embeddings-output results/embeddings.csv \
+  --output results/analysis
+```
+
+CSV embeddings are encoded as JSON arrays in the `embedding` column.
+
+### Store embeddings in Parquet
+
+```bash
+python main.py embeddings \
+  --model text-embedding-3-small \
+  --narrative-path data/narratives.csv \
+  --embeddings-output results/embeddings.parquet \
+  --skip-analysis
+```
+
+Parquet stores `embedding` as a native list-of-floats column and uses Zstandard
+compression. Writes are finalized atomically after embedding computation.
+
+### Store embeddings in SQLite without analysis
+
+```bash
+python main.py embeddings \
+  --model gemini-embedding-001 \
+  --gemini-task-type CLUSTERING \
+  --narrative-path data/narratives.csv \
+  --embeddings-output results/embeddings.sqlite \
+  --skip-analysis
+```
+
+SQLite embeddings are stored as JSON arrays in the `embeddings.embedding`
+column. Supported local database extensions are `.db`, `.sqlite`, and
+`.sqlite3`.
+
+### Gemini task types
+
+`--gemini-task-type` applies only to `gemini-embedding-001` and accepts the
+[supported Gemini task types](https://ai.google.dev/gemini-api/docs/embeddings#supported-task-types):
+`SEMANTIC_SIMILARITY` (default), `CLASSIFICATION`, `CLUSTERING`,
+`RETRIEVAL_DOCUMENT`, `RETRIEVAL_QUERY`, `CODE_RETRIEVAL_QUERY`,
+`QUESTION_ANSWERING`, and `FACT_VERIFICATION`.
+
+### MongoDB embedding storage
+
+When `--embeddings-output` is omitted, both MongoDB arguments are required:
+
+```bash
+python main.py embeddings \
+  --model text-embedding-3-small \
+  --narrative-path data/narratives.csv \
+  --mongo-db-name embeddings-db \
+  --mongo-collection-name embeddings \
+  --output results/analysis
+```
 
 ## 📊 Output Structure
 

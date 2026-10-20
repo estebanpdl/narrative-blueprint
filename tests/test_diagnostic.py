@@ -189,6 +189,7 @@ def test_graph_failure_cannot_publish_success(tmp_path, monkeypatch):
 
 def test_output_failure_cannot_publish_success(tmp_path, monkeypatch):
     import analysis.diagnostic as diagnostic
+    from main import main
     original = diagnostic._write_json
 
     def fail_community_output(path, value):
@@ -198,7 +199,11 @@ def test_output_failure_cannot_publish_success(tmp_path, monkeypatch):
 
     monkeypatch.setattr(diagnostic, "_write_json", fail_community_output)
     with pytest.raises(OSError, match="synthetic disk failure"):
-        run_diagnostic(arguments(tmp_path))
+        main([
+            "embeddings", "--analysis-only", "--analysis-source", str(FIXTURES / "vectors.csv"),
+            "--declared-space", "synthetic/fixture-v1", "--allow-legacy-source",
+            "--output", str(tmp_path / "result"),
+        ])
     status = json.loads((tmp_path / "result" / "diagnostic-status.json").read_text())
     assert status["status"] == "failed"
     assert "legacy-communities.json" not in status["outputs"]
@@ -229,6 +234,46 @@ def test_compute_dispatch_uses_lazy_fake_provider(tmp_path, monkeypatch, tail):
     model.assert_called_once_with(model_name="text-embedding-3-small")
     assert pipeline.call_args.kwargs["args"]["skip_analysis"] == bool(tail)
     pipeline.return_value.run_embedding_analysis.assert_called_once()
+
+
+@pytest.mark.parametrize("error_type", [PermissionError, ValueError])
+def test_compute_runtime_errors_propagate(tmp_path, monkeypatch, capsys, error_type):
+    import analysis
+    import embeddings
+    import runners.embeddings_runner as runner
+    from main import main
+
+    failure = error_type("synthetic runtime failure")
+    pipeline = Mock()
+    pipeline.return_value.run_embedding_analysis.side_effect = failure
+    monkeypatch.setattr(embeddings, "OpenAIEmbeddingModel", Mock())
+    monkeypatch.setattr(runner, "_get_embedding_storage", Mock())
+    monkeypatch.setattr(analysis, "EmbeddingAnalysis", pipeline)
+    with pytest.raises(error_type) as raised:
+        main([
+            "embeddings", "--narrative-path", "synthetic.csv",
+            "--embeddings-output", "synthetic-output.csv", "--output", str(tmp_path),
+        ])
+    assert raised.value is failure
+    assert "usage:" not in capsys.readouterr().err
+    pipeline.return_value.run_embedding_analysis.assert_called_once()
+
+
+@pytest.mark.parametrize("tail", [
+    ["--max-records", "0"], ["--max-records", "3"], ["--output", "."],
+])
+def test_diagnostic_refusals_remain_usage_errors(tmp_path, capsys, tail):
+    from main import main
+
+    with pytest.raises(SystemExit) as raised:
+        main([
+            "embeddings", "--analysis-only", "--analysis-source", str(FIXTURES / "vectors.csv"),
+            "--declared-space", "synthetic/fixture-v1", "--allow-legacy-source",
+            "--output", str(tmp_path / "result"), *tail,
+        ])
+    assert raised.value.code == 2
+    assert "usage:" in capsys.readouterr().err
+    assert not (tmp_path / "result").exists()
 
 
 @pytest.mark.parametrize("cli_args,code", [

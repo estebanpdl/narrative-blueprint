@@ -7,7 +7,7 @@ from pathlib import Path
 
 from analysis.diagnostic_source import read_source
 from analysis.embedding_analysis import EmbeddingAnalysis
-from cli.analysis_options import effective_limits
+from cli.analysis_options import EmbeddingInputError, effective_limits
 
 
 WARNINGS = [
@@ -46,7 +46,7 @@ def run_diagnostic(args):
     documents, source = read_source(args["analysis_source"], limits)
     output = Path(args["output"])
     if output.exists():
-        raise ValueError("Diagnostic output must be a new directory; choose a new --output")
+        raise EmbeddingInputError("Diagnostic output must be a new directory; choose a new --output")
     threshold = args.get("threshold", 0.75)
     print("DIAGNOSTIC ONLY: legacy compatibility analysis")
     for warning in WARNINGS:

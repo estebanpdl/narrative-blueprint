@@ -7,6 +7,8 @@ import json
 import math
 from pathlib import Path
 
+from cli.analysis_options import EmbeddingInputError
+
 
 SPACE_FIELDS = ("provider", "model_name", "model_revision", "task_type", "preprocessing")
 
@@ -18,21 +20,21 @@ def _hash(value):
 def read_source(source, limits):
     path = Path(source)
     if path.suffix.lower() != ".csv":
-        raise ValueError("Diagnostic sources must be local .csv files")
+        raise EmbeddingInputError("Diagnostic sources must be local .csv files")
     if not path.is_file():
-        raise ValueError(f"Analysis source is not a regular file: {path}")
+        raise EmbeddingInputError(f"Analysis source is not a regular file: {path}")
     limit = limits["max_source_bytes"]
     if path.stat().st_size > limit:
-        raise ValueError(f"Source exceeds max_source_bytes={limit}; select a smaller source")
+        raise EmbeddingInputError(f"Source exceeds max_source_bytes={limit}; select a smaller source")
     with path.open("rb") as stream:
         raw = stream.read(limit + 1)
     if len(raw) > limit:
-        raise ValueError(f"Source exceeds max_source_bytes={limit}")
+        raise EmbeddingInputError(f"Source exceeds max_source_bytes={limit}")
     fingerprint = hashlib.sha256(raw).hexdigest()
     try:
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError as exc:
-        raise ValueError("Source must be UTF-8 CSV") from exc
+        raise EmbeddingInputError("Source must be UTF-8 CSV") from exc
 
     documents = []
     seen = set()
@@ -43,30 +45,30 @@ def read_source(source, limits):
         reader = csv.DictReader(io.StringIO(text, newline=""), strict=True)
         columns = reader.fieldnames or []
         if not {"uuid", "text", "embedding"} <= set(columns):
-            raise ValueError("Source requires uuid, text and embedding columns")
+            raise EmbeddingInputError("Source requires uuid, text and embedding columns")
         if len(columns) != len(set(columns)):
-            raise ValueError("Duplicate CSV column names are ambiguous")
+            raise EmbeddingInputError("Duplicate CSV column names are ambiguous")
         for ordinal, row in enumerate(reader, 1):
             if ordinal > limits["max_records"]:
-                raise ValueError(f"Source exceeds max_records={limits['max_records']}")
+                raise EmbeddingInputError(f"Source exceeds max_records={limits['max_records']}")
             if None in row or any(value is None for value in row.values()):
-                raise ValueError(f"Row {ordinal}: column count mismatch")
+                raise EmbeddingInputError(f"Row {ordinal}: column count mismatch")
             uuid, narrative = row["uuid"], row["text"]
             if not uuid.strip() or not narrative.strip():
-                raise ValueError(f"Row {ordinal}: uuid and text must be nonempty")
+                raise EmbeddingInputError(f"Row {ordinal}: uuid and text must be nonempty")
             if uuid in seen:
-                raise ValueError(
+                raise EmbeddingInputError(
                     f"Row {ordinal}: repeated uuid; resolve occurrence versus retry identity first"
                 )
             seen.add(uuid)
             vector = _validate_vector(row["embedding"], ordinal, limits)
             if documents and len(vector) != len(documents[0]["embedding"]):
-                raise ValueError(f"Row {ordinal}: inconsistent vector dimension")
+                raise EmbeddingInputError(f"Row {ordinal}: inconsistent vector dimension")
             for field in SPACE_FIELDS:
                 value = row.get(field) or None
                 spaces[field].add(value)
                 if len(spaces[field]) > 1:
-                    raise ValueError(f"Row {ordinal}: mixed or partially missing {field} metadata")
+                    raise EmbeddingInputError(f"Row {ordinal}: mixed or partially missing {field} metadata")
             identity = json.dumps([fingerprint, ordinal, uuid], ensure_ascii=False)
             documents.append({
                 "occurrence_id": _hash(identity),
@@ -77,7 +79,7 @@ def read_source(source, limits):
                 "embedding": vector,
             })
     except (csv.Error, RecursionError) as exc:
-        raise ValueError(f"Malformed diagnostic source: {exc}") from exc
+        raise EmbeddingInputError(f"Malformed diagnostic source: {exc}") from exc
     finally:
         csv.field_size_limit(old_field_limit)
 
@@ -85,7 +87,7 @@ def read_source(source, limits):
     dimension = len(documents[0]["embedding"]) if documents else 0
     pairs = count * (count - 1) // 2
     if pairs > limits["max_pairs"]:
-        raise ValueError(
+        raise EmbeddingInputError(
             f"Possible pairs {pairs} exceed max_pairs={limits['max_pairs']}; "
             "select fewer records or raise the limit within its hard ceiling"
         )
@@ -93,7 +95,7 @@ def read_source(source, limits):
     # dense matrices. This is not a measured or enforced process RSS ceiling.
     estimate = 16 * len(raw) + 128 * count * dimension + 32 * count**2 + 8192 * pairs
     if estimate > limits["max_working_bytes"]:
-        raise ValueError(
+        raise EmbeddingInputError(
             f"Estimated working bytes {estimate} exceed "
             f"max_working_bytes={limits['max_working_bytes']}; select a smaller source"
         )
@@ -114,19 +116,19 @@ def _validate_vector(value, ordinal, limits):
     try:
         vector = json.loads(value)
     except (ValueError, RecursionError) as exc:
-        raise ValueError(f"Row {ordinal}: embedding must be a JSON numeric array") from exc
+        raise EmbeddingInputError(f"Row {ordinal}: embedding must be a JSON numeric array") from exc
     if not isinstance(vector, list) or not vector:
-        raise ValueError(f"Row {ordinal}: embedding must be a nonempty array")
+        raise EmbeddingInputError(f"Row {ordinal}: embedding must be a nonempty array")
     if len(vector) > limits["max_dimension"]:
-        raise ValueError(f"Row {ordinal}: dimension exceeds max_dimension={limits['max_dimension']}")
+        raise EmbeddingInputError(f"Row {ordinal}: dimension exceeds max_dimension={limits['max_dimension']}")
     try:
         valid = all(type(item) in (float, int) and math.isfinite(item) for item in vector)
         norm = math.hypot(*vector) if valid else 0
     except (OverflowError, TypeError):
         valid, norm = False, 0
     if not valid or not math.isfinite(norm) or norm == 0:
-        raise ValueError(f"Row {ordinal}: vector must be finite, numeric and nonzero")
+        raise EmbeddingInputError(f"Row {ordinal}: vector must be finite, numeric and nonzero")
     # Legacy cosine squares values; extreme magnitudes can overflow/underflow.
     if not 1e-100 <= norm <= 1e100:
-        raise ValueError(f"Row {ordinal}: vector magnitude is outside the diagnostic numeric range")
+        raise EmbeddingInputError(f"Row {ordinal}: vector magnitude is outside the diagnostic numeric range")
     return vector

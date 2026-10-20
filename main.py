@@ -5,6 +5,7 @@ import time
 
 # import key arguments
 from cli import parser
+from cli.analysis_options import EmbeddingInputError
 
 def main(argv=None):
     # parse arguments
@@ -26,7 +27,7 @@ def main(argv=None):
         else:
             from runners.blueprint_runner import handle_blueprint
             handle_blueprint(args)
-    except (ValueError, OSError) as exc:
+    except EmbeddingInputError as exc:
         parser.error(str(exc))
 
     # end process

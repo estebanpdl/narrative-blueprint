@@ -3,6 +3,10 @@
 import math
 
 
+class EmbeddingInputError(ValueError):
+    """Invalid arguments or diagnostic admission refusal, suitable for CLI usage."""
+
+
 # Hard ceilings keep the compatibility algorithm within a small-input envelope.
 LIMITS = {
     "max_records": (100, 500),
@@ -36,7 +40,7 @@ def effective_limits(args):
         value = args.get(name)
         value = default if value is None else value
         if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= ceiling:
-            raise ValueError(f"--{name.replace('_', '-')} must be between 1 and {ceiling}")
+            raise EmbeddingInputError(f"--{name.replace('_', '-')} must be between 1 and {ceiling}")
         limits[name] = value
     return limits
 
@@ -47,23 +51,23 @@ def validate_embeddings_args(args):
         diagnostic_options = ("analysis_source", "declared_space", "allow_legacy_source", *LIMITS)
         if any(args.get(name) is not None and args.get(name) is not False
                for name in diagnostic_options):
-            raise ValueError("Diagnostic options require --analysis-only")
+            raise EmbeddingInputError("Diagnostic options require --analysis-only")
         if not args.get("narrative_path"):
-            raise ValueError("--narrative-path is required for embedding computation")
+            raise EmbeddingInputError("--narrative-path is required for embedding computation")
         return
 
     for name in ("narrative_path", "model", "gemini_task_type", "embeddings_output",
                  "mongo_db_name", "mongo_collection_name", "skip_analysis"):
         if args.get(name) is not None and args.get(name) is not False:
-            raise ValueError(
+            raise EmbeddingInputError(
                 f"--analysis-only cannot be combined with --{name.replace('_', '-')}"
             )
     for name in ("analysis_source", "output", "declared_space"):
         if not str(args.get(name) or "").strip():
-            raise ValueError(f"--{name.replace('_', '-')} is required with --analysis-only")
+            raise EmbeddingInputError(f"--{name.replace('_', '-')} is required with --analysis-only")
     if not args.get("allow_legacy_source"):
-        raise ValueError("--allow-legacy-source is required: generation completeness is unknown")
+        raise EmbeddingInputError("--allow-legacy-source is required: generation completeness is unknown")
     threshold = args.get("threshold", 0.75)
     if not math.isfinite(threshold) or not 0 < threshold <= 1:
-        raise ValueError("--threshold must be finite and in (0, 1]")
+        raise EmbeddingInputError("--threshold must be finite and in (0, 1]")
     effective_limits(args)

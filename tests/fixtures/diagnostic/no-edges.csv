@@ -1,0 +1,3 @@
+uuid,text,embedding
+001,First synthetic statement.,"[1.0, 0.0]"
+002,Second synthetic statement.,"[0.0, 1.0]"

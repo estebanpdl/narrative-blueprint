@@ -6,19 +6,9 @@ import time
 # import key arguments
 from cli import parser
 
-# import runners
-from runners.blueprint_runner import handle_blueprint
-from runners.embeddings_runner import handle_embeddings
-
-# command dispatcher
-command_dispatcher = {
-    'blueprint': handle_blueprint,
-    'embeddings': handle_embeddings
-}
-
-def main():
+def main(argv=None):
     # parse arguments
-    args = vars(parser.parse_args())
+    args = vars(parser.parse_args(argv))
 
     # start process
     log_text = f'''
@@ -29,7 +19,15 @@ def main():
 
     # command dispatcher
     command = args.pop('command')
-    command_dispatcher[command](args)
+    try:
+        if command == 'embeddings':
+            from runners.embeddings_runner import handle_embeddings
+            handle_embeddings(args)
+        else:
+            from runners.blueprint_runner import handle_blueprint
+            handle_blueprint(args)
+    except (ValueError, OSError) as exc:
+        parser.error(str(exc))
 
     # end process
     log_text = f'''

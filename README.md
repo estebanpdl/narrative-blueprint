@@ -201,6 +201,10 @@ python main.py \
 
 ### Analyze stored vectors without a provider
 
+Start with the [analysis-only user guide](docs/analysis-only.md) for flag examples,
+CSV requirements, output interpretation, and creating a small subset of a larger CSV.
+This mode requires no API keys or MongoDB configuration.
+
 The analysis-only entry accepts a small local CSV and performs a **diagnostic
 legacy analysis**. It does not load provider credentials or compute embeddings.
 Start with the synthetic fixture, using a new output directory for each run:

@@ -2,21 +2,6 @@
 
 import os
 
-# embeddings
-from embeddings import OpenAIEmbeddingModel, GeminiEmbeddingModel
-
-# storage backends
-from databases import (
-    CSVFileManager,
-    MongoDBManager,
-    ParquetFileManager,
-    SQLiteManager
-)
-
-# import embedding analysis
-from analysis import EmbeddingAnalysis
-
-
 def _get_embedding_storage(args: dict):
     '''Select and initialize the requested embedding storage backend.'''
     embeddings_output = args.get('embeddings_output')
@@ -31,10 +16,13 @@ def _get_embedding_storage(args: dict):
 
         extension = os.path.splitext(embeddings_output)[1].lower()
         if extension == '.csv':
+            from databases import CSVFileManager
             return CSVFileManager(output_path=embeddings_output)
         if extension == '.parquet':
+            from databases import ParquetFileManager
             return ParquetFileManager(output_path=embeddings_output)
         if extension in {'.db', '.sqlite', '.sqlite3'}:
+            from databases import SQLiteManager
             return SQLiteManager(output_path=embeddings_output)
         raise ValueError(
             '--embeddings-output must use .csv, .parquet, .db, .sqlite, '
@@ -47,6 +35,7 @@ def _get_embedding_storage(args: dict):
             '--embeddings-output is not provided'
         )
 
+    from databases import MongoDBManager
     return MongoDBManager(
         db_name=mongo_db_name,
         collection_name=mongo_collection_name
@@ -63,6 +52,16 @@ def handle_embeddings(args: dict) -> None:
     :return: None
     :rtype: None
     '''
+    from cli.analysis_options import validate_embeddings_args
+
+    validate_embeddings_args(args)
+    if args.get('analysis_only'):
+        from analysis.diagnostic import run_diagnostic
+        run_diagnostic(args)
+        return
+
+    from analysis import EmbeddingAnalysis
+
     embedding_model_map = {
         'gemini-embedding-001': 'Gemini',
         'text-embedding-ada-002': 'OpenAI',
@@ -70,14 +69,8 @@ def handle_embeddings(args: dict) -> None:
         'text-embedding-3-large': 'OpenAI'
     }
 
-    # dispatch map for embedding models
-    embedding_model_classes = {
-        'Gemini': GeminiEmbeddingModel,
-        'OpenAI': OpenAIEmbeddingModel,
-    }
-
     # get model name
-    model = args['model']
+    model = args.get('model') or 'text-embedding-3-small'
     provider = embedding_model_map.get(model)
     if not provider:
         raise ValueError(f'Unsupported embedding model: {model}')
@@ -94,7 +87,10 @@ def handle_embeddings(args: dict) -> None:
     storage = _get_embedding_storage(args)
 
     # select and instantiate embedding model
-    model_class = embedding_model_classes[provider]
+    if provider == 'Gemini':
+        from embeddings import GeminiEmbeddingModel as model_class
+    else:
+        from embeddings import OpenAIEmbeddingModel as model_class
     model_options = {'model_name': model}
     if model == 'gemini-embedding-001':
         model_options['task_type'] = (

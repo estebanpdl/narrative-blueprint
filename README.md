@@ -199,6 +199,60 @@ python main.py \
 
 ## Embeddings
 
+### Analyze stored vectors without a provider
+
+The analysis-only entry accepts a small local CSV and performs a **diagnostic
+legacy analysis**. It does not load provider credentials or compute embeddings.
+Start with the synthetic fixture, using a new output directory for each run:
+
+```bash
+python main.py embeddings --analysis-only --analysis-source tests/fixtures/diagnostic/vectors.csv --declared-space synthetic/fixture-v1 --allow-legacy-source --output results/diagnostic-example
+```
+
+Expect four selected occurrences, three unique texts, one legacy community
+representing two unique texts, and `Output status: diagnostic_complete`.
+Inspect `selection.json`, `legacy-communities.json` and
+`diagnostic-status.json`. UUIDs such as `001` stay strings. The selected
+duplicate occurrences remain visible, but the legacy graph collapses their
+text and drops the isolated fixture record. Its bridge-edge statistics and
+batch filtering are also uncorrected. These are diagnostic results, not
+complete occurrence assignments or a scalable analysis.
+
+`--allow-legacy-source` acknowledges unknown original generation completeness.
+`--declared-space` records your assertion of a common embedding recipe; it
+does not verify that assertion. CSV requires `uuid`, `text` and `embedding`
+(a JSON numeric array). Repeated UUIDs, invalid vectors, mixed dimensions and
+conflicting reported space metadata refuse the whole run.
+
+Useful offline checks:
+
+```bash
+python main.py embeddings --analysis-only --analysis-source tests/fixtures/diagnostic/no-edges.csv --declared-space synthetic/orthogonal-v1 --allow-legacy-source --output results/diagnostic-no-edges
+python main.py embeddings --analysis-only --analysis-source tests/fixtures/diagnostic/empty.csv --declared-space synthetic/empty-v1 --allow-legacy-source --output results/diagnostic-empty
+python main.py embeddings --analysis-only --analysis-source tests/fixtures/diagnostic/vectors.csv --declared-space synthetic/fixture-v1 --allow-legacy-source --max-records 3 --output results/diagnostic-refused
+```
+
+The first two complete with zero communities (two and zero selected rows).
+The third exits with an error before creating output because four rows exceed
+the limit. To rerun a successful example, choose a new output directory.
+
+Defaults admit at most 100 records, 3072 dimensions, 4 MiB source bytes, 4950
+possible pairs and a 64 MiB working-memory estimate. All five limits are
+configurable within strict diagnostic ceilings shown in `embeddings --help`.
+The working estimate is not an enforced process RSS or runtime ceiling.
+The [stored-vector contract](docs/embedding-analysis-contract.md) specifies
+identity, limits, diagnostic outputs and the separately versioned corrected
+analysis format, which this adapter does not implement.
+
+Tests run with provider constructors, credential loaders, `.env` opens and
+network connection operations blocked:
+
+```bash
+python -m pytest tests -q
+```
+
+### Compute and store embeddings
+
 The `embeddings` command stores vectors in MongoDB by default. Use
 `--embeddings-output` to select a local CSV, Parquet, or SQLite file instead.
 The existing `-o, --output` option remains the directory for projector and

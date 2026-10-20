@@ -1,0 +1,5 @@
+uuid,text,embedding,provider,model_name,task_type
+001,La biblioteca abre hoy.,"[1.0, 0.0, 0.0]",synthetic,fixture-v1,SEMANTIC_SIMILARITY
+002,La biblioteca abre hoy.,"[1.0, 0.0, 0.0]",synthetic,fixture-v1,SEMANTIC_SIMILARITY
+003,The library opens today.,"[0.98, 0.1, 0.0]",synthetic,fixture-v1,SEMANTIC_SIMILARITY
+004,An unrelated synthetic statement.,"[0.0, 0.0, 1.0]",synthetic,fixture-v1,SEMANTIC_SIMILARITY

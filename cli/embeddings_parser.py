@@ -7,6 +7,7 @@ from argparse import (
 
 # import argparse formatter
 from utils.argparse_formatter import CustomHelpFormatter
+from cli.analysis_options import add_analysis_options
 
 # create embeddings parser
 def create_embeddings_parser(subparsers: ArgumentParser) -> ArgumentParser:
@@ -49,19 +50,20 @@ def create_embeddings_parser(subparsers: ArgumentParser) -> ArgumentParser:
             'text-embedding-3-small', 'text-embedding-3-large',
             'text-embedding-ada-002', 'gemini-embedding-001'
         ],
-        default='text-embedding-3-small',
+        default=None,
         metavar='',
         help=(
             "Embedding model to use. Available options: "
             "OpenAI 'text-embedding-3-small', 'text-embedding-3-large', "
-            "'text-embedding-ada-002', and Gemini 'gemini-embedding-001'"
+            "'text-embedding-ada-002', and Gemini 'gemini-embedding-001'. "
+            "Compute default: text-embedding-3-small"
         )
     )
 
     embeddings_arguments.add_argument(
         '--narrative-path',
         type=str,
-        required=True,
+        required=False,
         metavar='',
         help=(
             "Path to the narrative file. File can be CSV, XLSX, or JSON. "
@@ -154,4 +156,5 @@ def create_embeddings_parser(subparsers: ArgumentParser) -> ArgumentParser:
         help='Name of the MongoDB collection to store the embeddings'
     )
 
+    add_analysis_options(embeddings_parser)
     return embeddings_parser

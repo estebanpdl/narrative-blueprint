@@ -21,3 +21,6 @@ prompts/
 
 # README.md
 !README.md
+!docs/embedding-analysis-contract.md
+!tests/fixtures/diagnostic/*.csv
+.pytest_cache/

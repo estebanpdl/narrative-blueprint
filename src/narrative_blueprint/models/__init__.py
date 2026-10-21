@@ -2,6 +2,7 @@
 
 # import modules
 import json
+from narrative_blueprint.resources import load_model_limits
 
 # language models
 from .model import LanguageModel
@@ -23,9 +24,7 @@ def get_llm_engine(model_name: str) -> LanguageModel:
     :raises ValueError: If the model is not found in model_limits.json
     '''
     # Load model limits config
-    config_path = './config/model_limits.json'
-    with open(config_path, 'r', encoding='utf-8') as f:
-        model_limits = json.load(f)
+    model_limits = load_model_limits()
     
     # get model
     for provider, models in model_limits.items():

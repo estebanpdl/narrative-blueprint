@@ -10,10 +10,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from analysis.diagnostic import DiagnosticAnalysis, run_diagnostic
-from cli.analysis_options import LIMITS, validate_embeddings_args
-from cli.parser import create_main_parser
-from runners.embeddings_runner import handle_embeddings
+from narrative_blueprint.analysis.diagnostic import DiagnosticAnalysis, run_diagnostic
+from narrative_blueprint.cli.analysis_options import LIMITS, validate_embeddings_args
+from narrative_blueprint.cli.parser import create_main_parser
+from narrative_blueprint.runners.embeddings_runner import handle_embeddings
 
 
 FIXTURES = Path(__file__).parent / "fixtures" / "diagnostic"
@@ -188,7 +188,7 @@ def test_graph_failure_cannot_publish_success(tmp_path, monkeypatch):
 
 
 def test_output_failure_cannot_publish_success(tmp_path, monkeypatch):
-    import analysis.diagnostic as diagnostic
+    import narrative_blueprint.analysis.diagnostic as diagnostic
     from main import main
     original = diagnostic._write_json
 
@@ -219,9 +219,9 @@ def test_interruption_cannot_publish_success(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("tail", [[], ["--skip-analysis"]])
 def test_compute_dispatch_uses_lazy_fake_provider(tmp_path, monkeypatch, tail):
-    import embeddings
-    import analysis
-    import runners.embeddings_runner as runner
+    import narrative_blueprint.embeddings as embeddings
+    import narrative_blueprint.analysis as analysis
+    import narrative_blueprint.runners.embeddings_runner as runner
     model, storage, pipeline = Mock(), Mock(), Mock()
     monkeypatch.setattr(embeddings, "OpenAIEmbeddingModel", model)
     monkeypatch.setattr(runner, "_get_embedding_storage", Mock(return_value=storage))
@@ -238,9 +238,9 @@ def test_compute_dispatch_uses_lazy_fake_provider(tmp_path, monkeypatch, tail):
 
 @pytest.mark.parametrize("error_type", [PermissionError, ValueError])
 def test_compute_runtime_errors_propagate(tmp_path, monkeypatch, capsys, error_type):
-    import analysis
-    import embeddings
-    import runners.embeddings_runner as runner
+    import narrative_blueprint.analysis as analysis
+    import narrative_blueprint.embeddings as embeddings
+    import narrative_blueprint.runners.embeddings_runner as runner
     from main import main
 
     failure = error_type("synthetic runtime failure")

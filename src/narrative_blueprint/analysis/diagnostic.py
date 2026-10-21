@@ -5,14 +5,14 @@ import json
 from importlib.metadata import version
 from pathlib import Path
 
-from analysis.diagnostic_source import read_source
-from analysis.embedding_analysis import EmbeddingAnalysis
-from cli.analysis_options import EmbeddingInputError, effective_limits
+from narrative_blueprint.analysis.diagnostic_source import read_source
+from narrative_blueprint.analysis.embedding_analysis import EmbeddingAnalysis
+from narrative_blueprint.cli.analysis_options import EmbeddingInputError, effective_limits
 
 
 WARNINGS = [
     "Legacy source: original generation completeness is unknown.",
-    "Declared embedding space is user supplied, not verified provenance.",
+    "Embedding space is unverified; an optional declared-space note does not verify provenance.",
     "Legacy graph drops isolates and collapses duplicate texts; it is not an occurrence graph.",
     "Legacy batch filtering is not corrected; bridge edges contaminate community statistics.",
     "Diagnostic results are not complete assignments or evidence of narrative validity.",
@@ -64,7 +64,7 @@ def run_diagnostic(args):
         "corrected_analysis_complete": False,
         "generation_completeness": "unknown",
         "source": source,
-        "declared_space": args["declared_space"],
+        "declared_space": args.get("declared_space"),
         "provenance_verified": False,
         "limits": limits,
         "parameters": {"threshold": threshold, "louvain_seed": 42, "resolution": 1},

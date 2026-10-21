@@ -11,6 +11,7 @@ import time
 import json
 import random
 import threading
+from narrative_blueprint.resources import load_model_limits
 
 # abstract base class
 from abc import ABC, abstractmethod
@@ -100,11 +101,7 @@ class LanguageModel(ABC):
         :raises FileNotFoundError: If the model limits configuration file does not exist.
         :raises json.JSONDecodeError: If the configuration file is not a valid JSON.
         '''
-        path = './config/model_limits.json'
-        with open(path, 'r', encoding='utf-8') as f:
-            model_limits = json.load(f)
-        
-        return model_limits
+        return load_model_limits()
     
     @abstractmethod
     def get_log_file(self) -> str:

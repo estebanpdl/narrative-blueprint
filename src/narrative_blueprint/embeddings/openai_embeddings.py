@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 # import modules
-import os
 import time
+import tiktoken
 
 # progress bar
 from tqdm import tqdm
@@ -12,52 +12,66 @@ from dotenv import load_dotenv
 
 # import base class
 from .base import VectorModel
-from databases.database import Database
+from narrative_blueprint.databases.database import Database
 
-# Gemini related modules
-from google import genai
-from google.genai import types
+# OpenAI related modules
+from openai import OpenAI, RateLimitError
 
 # Embedding Model class
-class GeminiEmbeddingModel(VectorModel):
+class OpenAIEmbeddingModel(VectorModel):
     '''
-    GeminiEmbeddingModel class
+    OpenAIEmbeddingModel class
     '''
-    # Gemini model limits
+    # OpenAI model limits
     MODEL_LIMITS = {
-        'gemini-embedding-001': {
-            'rpm': 3000,
+        'text-embedding-ada-002': {
+            'rpm': 5000,
+            'tpm': 1000000
+        },
+        'text-embedding-3-small': {
+            'rpm': 5000,
+            'tpm': 1000000
+        },
+        'text-embedding-3-large': {
+            'rpm': 5000,
             'tpm': 1000000
         }
     }
 
+    # model token encoding
+    ENCODING = 'cl100k_base'
+
     # max tokens per request
-    MAX_TOKENS_PER_REQUEST = 2000
+    MAX_TOKENS_PER_REQUEST = 250000
 
     # max number of documents to process in one batch
-    DOCS_PER_BATCH = 100
+    DOCS_PER_BATCH = 2000
 
-    def __init__(self, model_name: str,
-                 task_type: str = 'SEMANTIC_SIMILARITY'):
+    def __init__(self, model_name: str):
+        '''
+        Initialize the OpenAIEmbeddingModel class.
+
+        :param model_name: The name of the OpenAI model to be used.
+        :type model_name: str
+        '''
         super().__init__()
 
         # load environment variables
         env_file_path = './config/.env'
         load_dotenv(env_file_path)
 
-        # read API key
-        api_key = os.getenv('GEMINI_API_KEY')
+        # OpenAI client
+        self.client = OpenAI()
 
-        # initialize Gemini client
-        self.client = genai.Client(api_key=api_key)
-
-        # Gemini model
+        # OpenAI model
         self.model_name = model_name
-        self.task_type = task_type
 
         # get model limits
         self.max_requests_per_min = self.MODEL_LIMITS[self.model_name]['rpm']
         self.max_tokens_per_min = self.MODEL_LIMITS[self.model_name]['tpm']
+
+        # model token encoding
+        self.encoding = tiktoken.get_encoding(self.ENCODING)
 
     def estimate_tokens(self, text: str) -> int:
         '''
@@ -69,7 +83,7 @@ class GeminiEmbeddingModel(VectorModel):
         :return: The estimated number of tokens.
         :rtype: int
         '''
-        return len(text) // 4
+        return len(self.encoding.encode(text))
 
     def _safe_embed_request(self,
                             uuids: list = None,
@@ -94,12 +108,9 @@ class GeminiEmbeddingModel(VectorModel):
         retry_count = 0
         while retry_count < retry_max:
             try:
-                response = self.client.models.embed_content(
-                    model=f'models/{self.model_name}',
-                    contents=batch_data,
-                    config=types.EmbedContentConfig(
-                        task_type=self.task_type
-                    )
+                response = self.client.embeddings.create(
+                    model=self.model_name,
+                    input=batch_data
                 )
 
                 # build data object
@@ -107,10 +118,9 @@ class GeminiEmbeddingModel(VectorModel):
                     {
                         'uuid': uuids[i],
                         'text': batch_data[i],
-                        'embedding': response.embeddings[i].values,
+                        'embedding': response.data[i].embedding,
                         'model_name': self.model_name,
-                        'provider': 'Google',
-                        'task_type': self.task_type
+                        'provider': 'OpenAI'
                     }
                     for i in range(len(uuids))
                 ]
@@ -118,20 +128,15 @@ class GeminiEmbeddingModel(VectorModel):
                 self._store_embeddings(data)
 
                 return
-            except Exception as e:
-                self._log_write(f'Failed to compute embeddings for request {request_id}')
-                self._log_write(str(e))
-                self._log_write('')
-
-                # retry
+            except RateLimitError as e:
                 retry_count += 1
                 wait_time = 60
                 time.sleep(wait_time)
 
         # exceeded max retries
         if retry_count >= retry_max:
-            self._log_write(f'Failed to compute embeddings for request {request_id}. Cancelled!')
-            return
+            self._log_write(f'Failed to compute embeddings for request {request_id}')
+            raise RuntimeError('Failed to compute embeddings.')
 
     def _process_batch(self,
                        uuids: list = None,
@@ -148,25 +153,25 @@ class GeminiEmbeddingModel(VectorModel):
         :param uuids: The uuids of the documents to be embedded.
         :type uuids: list
 
-        :param batch_data: The batch of documents to be processed.
+        :param batch_data: Batch of documents to process
         :type batch_data: list[str]
 
-        :param rpm_start_time: The start time of the RPM.
+        :param rpm_start_time: Start time for rate limit tracking
         :type rpm_start_time: float
 
-        :param tpm_start_time: The start time of the TPM.
+        :param tpm_start_time: Start time for token limit tracking
         :type tpm_start_time: float
 
-        :param request_count: The number of requests.
+        :param request_count: Current request count
         :type request_count: int
 
-        :param pbar: The progress bar.
+        :param pbar: Progress bar
         :type pbar: tqdm
 
-        :param start_request_id: The starting request ID.
+        :param start_request_id: Starting request ID
         :type start_request_id: int
 
-        :param global_token_count: The global token count.
+        :param global_token_count: Global token count
         :type global_token_count: int
 
         :return: Tuple of (rpm_start_time, tpm_start_time,
@@ -195,7 +200,7 @@ class GeminiEmbeddingModel(VectorModel):
                     request_id=request_id
                 )
 
-                # update progress bar
+                # update progress bar for processed batch
                 pbar.update(len(current_batch))
 
                 # increment request count
@@ -255,7 +260,7 @@ class GeminiEmbeddingModel(VectorModel):
             # update progress bar
             pbar.update(len(current_batch))
 
-            # increment request count
+            # increment request processes
             request_count += 1
             request_id += 1
 

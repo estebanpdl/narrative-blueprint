@@ -8,11 +8,11 @@ import string
 import pandas as pd
 
 # import LLM base class
-from models import LanguageModel
+from narrative_blueprint.models import LanguageModel
 
 # import Database base class
-from databases.database import Database
-from databases.json_file import JSONFileManager
+from narrative_blueprint.databases.database import Database
+from narrative_blueprint.databases.json_file import JSONFileManager
 
 # Narrative blueprint class
 class NarrativeBlueprint:
@@ -41,7 +41,7 @@ class NarrativeBlueprint:
         :type args: dict
 
         Example:
-            >>> from models.openai_client import OpenAIGPT
+            >>> from narrative_blueprint.models.openai_client import OpenAIGPT
             >>> llm_engine = OpenAIGPT(model="gpt-4o-mini")
             >>> blueprint = NarrativeBlueprint(llm_engine=llm_engine)
         '''

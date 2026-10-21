@@ -1,6 +1,6 @@
 # Analysis-only diagnostic
 
-Use `embeddings --analysis-only` to inspect a **small CSV of existing vectors**
+Use `nblue embeddings analyze` to inspect a **small CSV of existing vectors**
 without generating embeddings, loading credentials, or contacting a provider.
 It validates the selected input, runs the uncorrected legacy similarity graph,
 and writes explicitly labelled diagnostic JSON files. No API keys, `.env`, or
@@ -27,9 +27,9 @@ two unique texts, and `Output status: diagnostic_complete`. The duplicate
 occurrences remain in `selection.json`; the isolated text has no community.
 Use a new output directory on each run, including when retrying failed work.
 
-## Required declarations
+## Provenance note and required acknowledgement
 
-`--declared-space` takes a **value**, not just a switch. A recipe describes how
+`--declared-space` is optional and takes a **value**, not just a switch. A recipe describes how
 the vectors were generated: provider/model, task type, dimension, model revision,
 and preprocessing where known. For example:
 
@@ -43,6 +43,8 @@ as a claim about unrelated vectors. Keep unknown details explicit, for example
 The label is free text recorded in `declared_space`; it neither configures a
 provider nor verifies provenance. Matching labels and dimensions alone do not
 prove that vectors belong to a compatible embedding space.
+When omitted, `declared_space` is null; an explicitly blank value is refused.
+The note does not affect scores, communities or source metadata checks.
 
 `--allow-legacy-source` is a switch with **no value**. Here, "legacy" means a
 CSV without an expected-input manifest or generation ledger. Even a CSV with
@@ -57,11 +59,11 @@ truncate data: exceeding one refuses the whole diagnostic before graph/output.
 
 | Flag | Value and meaning | Default | Ceiling or constraint |
 |---|---|---|---|
-| `--analysis-only` | Switch selecting this offline mode | Off | Required for diagnostic options |
-| `--analysis-source CSV` | Local UTF-8 CSV path | None | Required; CSV only |
-| `--declared-space LABEL` | Quoted common recipe declaration | None | Required, nonblank; unverified |
+| `--analysis-only` | Legacy flat switch; use `embeddings analyze` instead | Off | Compatibility syntax only |
+| `--source CSV` (alias `--analysis-source`) | Local UTF-8 CSV path | None | Required; CSV only |
+| `--declared-space LABEL` | Quoted recipe note | null | Optional; nonblank when supplied; unverified |
 | `--allow-legacy-source` | Acknowledge unknown coverage/provenance | Off | Required; takes no value |
-| `-o, --output DIRECTORY` | Directory for diagnostic JSON | None | Required; must not already exist |
+| `--analysis-dir DIRECTORY` (aliases `-o`, `--output`) | Directory for diagnostic JSON | None | Required; must not already exist |
 | `--threshold SCORE` | Keep cosine scores greater than or equal to this value | 0.75 | Finite; `0 < SCORE <= 1` |
 | `--max-records N` | CSV data records | 100 | 500 |
 | `--max-dimension N` | Numbers in each vector | 3072 | 16384 |

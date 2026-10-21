@@ -25,3 +25,7 @@ prompts/
 !docs/analysis-only.md
 !tests/fixtures/diagnostic/*.csv
 .pytest_cache/
+build/
+dist/
+*.egg-info/
+!docs/*.md

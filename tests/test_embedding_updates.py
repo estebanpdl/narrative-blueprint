@@ -5,12 +5,12 @@ import tempfile
 import unittest
 from unittest.mock import Mock
 
-from analysis.embedding_analysis import EmbeddingAnalysis
-from cli.parser import create_main_parser
-from databases import CSVFileManager, ParquetFileManager, SQLiteManager
-from embeddings.base import VectorModel
-from embeddings.gemini_embeddings import GeminiEmbeddingModel
-from runners.embeddings_runner import _get_embedding_storage, handle_embeddings
+from narrative_blueprint.analysis.embedding_analysis import EmbeddingAnalysis
+from narrative_blueprint.cli.parser import create_main_parser
+from narrative_blueprint.databases import CSVFileManager, ParquetFileManager, SQLiteManager
+from narrative_blueprint.embeddings.base import VectorModel
+from narrative_blueprint.embeddings.gemini_embeddings import GeminiEmbeddingModel
+from narrative_blueprint.runners.embeddings_runner import _get_embedding_storage, handle_embeddings
 
 
 class FakeVectorModel(VectorModel):

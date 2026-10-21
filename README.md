@@ -4,7 +4,7 @@
 
 **AI-Assisted Narrative Analysis**
 
-![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)
+![Python](https://img.shields.io/badge/python-3.14-blue.svg)
 ![Active Development](https://img.shields.io/badge/status-active%20development-orange.svg)
 ![Open Source](https://img.shields.io/badge/open%20source-MIT-blue.svg)
 ![AI Research](https://img.shields.io/badge/AI-research-purple.svg)
@@ -55,8 +55,8 @@ Narrative Blueprint is an AI-driven analysis framework that uses LLMs to analyze
 ## 🛠️ Installation
 
 ### Prerequisites
-- Python 3.8+
-- OpenAI API key and/or Google Gemini API key
+- Python 3.14 (the currently qualified runtime series)
+- OpenAI API key and/or Google Gemini API key for generation; none for stored-vector diagnostics
 - MongoDB instance (optional — only needed when using MongoDB storage)
 
 ### Setup
@@ -66,7 +66,11 @@ git clone <repository-url>
 cd narrative-blueprint
 
 # Install dependencies
-pip install -r requirements.txt
+python -m pip install .
+
+# Inspect the installed commands without credentials
+nblue --help
+python -m narrative_blueprint --help
 
 # Set up environment variables
 cp config/.env.template config/.env
@@ -74,6 +78,14 @@ cp config/.env.template config/.env
 #   OPENAI_API_KEY=your-openai-api-key
 #   GEMINI_API_KEY=your-gemini-api-key
 ```
+
+See the [documentation index](docs/index.md) and [provider-free quick start](docs/quick-start.md).
+The canonical commands are `nblue blueprint`, `nblue embeddings compute`, and
+`nblue embeddings analyze`. Existing `python main.py` commands and old flags below
+remain supported through 1.x; see the [migration map](docs/cli-compatibility.md).
+Source-only clone use requires `python -m pip install -r requirements.txt`.
+The package is installed from the checkout; these instructions do not imply a
+published PyPI release. Set up generation credentials only if using a provider.
 
 ## 📋 Dataset Requirements
 
@@ -223,7 +235,7 @@ batch filtering are also uncorrected. These are diagnostic results, not
 complete occurrence assignments or a scalable analysis.
 
 `--allow-legacy-source` acknowledges unknown original generation completeness.
-`--declared-space` records your assertion of a common embedding recipe; it
+Optional `--declared-space` records an unverified recipe note (null if omitted); it
 does not verify that assertion. CSV requires `uuid`, `text` and `embedding`
 (a JSON numeric array). Repeated UUIDs, invalid vectors, mixed dimensions and
 conflicting reported space metadata refuse the whole run.

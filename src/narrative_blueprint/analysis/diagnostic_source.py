@@ -7,7 +7,7 @@ import json
 import math
 from pathlib import Path
 
-from cli.analysis_options import EmbeddingInputError
+from narrative_blueprint.cli.analysis_options import EmbeddingInputError
 
 
 SPACE_FIELDS = ("provider", "model_name", "model_revision", "task_type", "preprocessing")

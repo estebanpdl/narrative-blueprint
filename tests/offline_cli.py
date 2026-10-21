@@ -13,9 +13,9 @@ def run():
     patch = pytest.MonkeyPatch()
     install_guard(patch)
     original_import = builtins.__import__
-    blocked = ("openai", "google.genai", "dotenv", "models",
-               "embeddings.openai_embeddings", "embeddings.gemini_embeddings",
-               "databases.mongo", "runners.blueprint_runner")
+    blocked = ("openai", "google.genai", "dotenv", "narrative_blueprint.models",
+               "narrative_blueprint.embeddings.openai_embeddings", "narrative_blueprint.embeddings.gemini_embeddings",
+               "narrative_blueprint.databases.mongo", "narrative_blueprint.runners.blueprint_runner")
 
     def guarded_import(name, *args, **kwargs):
         if any(name == item or name.startswith(item + ".") for item in blocked):

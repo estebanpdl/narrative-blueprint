@@ -17,10 +17,10 @@ from sklearn.metrics.pairwise import cosine_similarity
 from networkx.algorithms.community import louvain_communities
 
 # embeddings
-from embeddings import VectorModel
+from narrative_blueprint.embeddings import VectorModel
 
 # storage
-from databases.database import Database
+from narrative_blueprint.databases.database import Database
 
 # Embedding Analysis class
 class EmbeddingAnalysis:

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "narrative-blueprint"
+version = "0.1.0"
+description = "Structured narrative blueprints and stored-vector diagnostics"
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+dynamic = ["dependencies"]
+
+[project.scripts]
+nblue = "narrative_blueprint.cli.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["narrative_blueprint*"]
+namespaces = false
+
+[tool.setuptools.package-data]
+"narrative_blueprint.resources" = ["model_limits.json"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}

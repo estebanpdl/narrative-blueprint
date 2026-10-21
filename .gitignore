@@ -2,7 +2,12 @@
 .vscode
 
 # cache files
+.pytest_cache/
 __pycache__/
+*.egg-info/
+build/
+dist/
+
 
 # env files
 .env
@@ -10,22 +15,5 @@ __pycache__/
 # ignore local logs and datasets
 logs/
 
-# NarrativeBlueprint local directories
-notebooks/
-datasets/
-prompts/
-
-# NarrativeBlueprint specifics
-*.md
-*.csv
-
-# README.md
-!README.md
-!docs/embedding-analysis-contract.md
-!docs/analysis-only.md
-!tests/fixtures/diagnostic/*.csv
-.pytest_cache/
-build/
-dist/
-*.egg-info/
-!docs/*.md
+# dev plan
+plan/

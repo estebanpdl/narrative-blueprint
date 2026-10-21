@@ -13,6 +13,16 @@ from cli.analysis_options import EmbeddingInputError
 SPACE_FIELDS = ("provider", "model_name", "model_revision", "task_type", "preprocessing")
 
 
+def _source_limit_error(detail):
+    return EmbeddingInputError(
+        f"{detail}. Small-input diagnostic only: hard ceilings are 16 MiB "
+        "(16777216 bytes) and 500 records; pair and working-byte limits also apply. "
+        "Create a smaller CSV subset first; --max-records does not truncate the source. "
+        "See docs/analysis-only.md for a CSV-aware subset recipe. "
+        "Full-source scalable analysis is not available in this diagnostic"
+    )
+
+
 def _hash(value):
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
@@ -24,12 +34,13 @@ def read_source(source, limits):
     if not path.is_file():
         raise EmbeddingInputError(f"Analysis source is not a regular file: {path}")
     limit = limits["max_source_bytes"]
-    if path.stat().st_size > limit:
-        raise EmbeddingInputError(f"Source exceeds max_source_bytes={limit}; select a smaller source")
+    source_bytes = path.stat().st_size
+    if source_bytes > limit:
+        raise _source_limit_error(f"Source size {source_bytes} bytes exceeds max_source_bytes={limit} (--max-source-bytes)")
     with path.open("rb") as stream:
         raw = stream.read(limit + 1)
     if len(raw) > limit:
-        raise EmbeddingInputError(f"Source exceeds max_source_bytes={limit}")
+        raise _source_limit_error(f"Source exceeds max_source_bytes={limit} (--max-source-bytes)")
     fingerprint = hashlib.sha256(raw).hexdigest()
     try:
         text = raw.decode("utf-8-sig")
@@ -50,7 +61,7 @@ def read_source(source, limits):
             raise EmbeddingInputError("Duplicate CSV column names are ambiguous")
         for ordinal, row in enumerate(reader, 1):
             if ordinal > limits["max_records"]:
-                raise EmbeddingInputError(f"Source exceeds max_records={limits['max_records']}")
+                raise _source_limit_error(f"Source exceeds max_records={limits['max_records']} (--max-records) at record {ordinal}")
             if None in row or any(value is None for value in row.values()):
                 raise EmbeddingInputError(f"Row {ordinal}: column count mismatch")
             uuid, narrative = row["uuid"], row["text"]

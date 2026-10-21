@@ -7,7 +7,7 @@ from argparse import (
 
 # import argparse formatter
 from utils.argparse_formatter import CustomHelpFormatter
-from cli.analysis_options import add_analysis_options
+from cli.analysis_options import ANALYSIS_EPILOG, add_analysis_options
 
 # create embeddings parser
 def create_embeddings_parser(subparsers: ArgumentParser) -> ArgumentParser:
@@ -25,6 +25,7 @@ def create_embeddings_parser(subparsers: ArgumentParser) -> ArgumentParser:
         'embeddings',
         help='Compute embeddings and run similarity analysis on narratives',
         formatter_class=CustomHelpFormatter,
+        epilog=ANALYSIS_EPILOG,
         add_help=False
     )
 
@@ -76,10 +77,11 @@ def create_embeddings_parser(subparsers: ArgumentParser) -> ArgumentParser:
         '--output',
         type=str,
         default=None,
-        metavar='',
+        metavar='DIRECTORY',
         help=(
             'Directory where embedding analysis results will be saved. '
-            'Required unless --skip-analysis is used'
+            'Required unless --skip-analysis is used; no default. '
+            'With --analysis-only, must be a new directory (example: results/diagnostic-01)'
         )
     )
 
@@ -96,8 +98,8 @@ def create_embeddings_parser(subparsers: ArgumentParser) -> ArgumentParser:
         '--threshold',
         type=float,
         default=0.75,
-        metavar='',
-        help='Threshold for the similarity analysis'
+        metavar='SCORE',
+        help='Cosine similarity threshold; default 0.75. Analysis-only requires a finite score in (0, 1]'
     )
 
     embeddings_arguments.add_argument(

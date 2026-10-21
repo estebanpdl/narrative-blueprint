@@ -1,6 +1,7 @@
 """Options and validation for the provider-free diagnostic entry point."""
 
 import math
+from argparse import ArgumentParser
 
 
 class EmbeddingInputError(ValueError):
@@ -17,20 +18,65 @@ LIMITS = {
 }
 
 
+VALUE_HINTS = {
+    "--analysis-source": 'expects a local CSV path; example: --analysis-source subset.csv',
+    "--declared-space": (
+        'expects a quoted recipe label describing how vectors were generated '
+        '(model, task type, and preprocessing if known); example: '
+        '--declared-space "gemini-embedding-001 / CLUSTERING / original text". '
+        'This is your declaration, not verified provenance'
+    ),
+    "--output": ('expects a directory path (new for --analysis-only); '
+                 'example: --output results/diagnostic-01'),
+}
+
+
+class DiagnosticArgumentParser(ArgumentParser):
+    """Add actionable value hints to embeddings syntax errors only."""
+
+    def error(self, message):
+        if self.prog.endswith(" embeddings") and "expected one argument" in message:
+            for option, hint in VALUE_HINTS.items():
+                if option in message:
+                    message += f"\n{option} {hint}"
+                    break
+        super().error(message)
+
+
+ANALYSIS_EPILOG = '''Analysis-only example (no provider credentials needed):
+  python main.py embeddings --analysis-only --analysis-source subset.csv --declared-space "gemini-embedding-001 / CLUSTERING / original text" --allow-legacy-source --output results/diagnostic-01
+
+Use your actual recipe label; unknown details must remain unknown.
+Both --declared-space LABEL and --allow-legacy-source are required.
+Small CSV inputs only: hard ceilings 16 MiB source and 500 records; other limits also apply.
+For input format, outputs, and a CSV-aware subset recipe, see docs/analysis-only.md.
+'''
+
+
 def add_analysis_options(parser):
     group = parser.add_argument_group("Offline diagnostic analysis")
     group.add_argument("--analysis-only", action="store_true",
-                       help="Analyze a small stored CSV without provider setup")
-    group.add_argument("--analysis-source",
-                       help="Explicit local CSV source (uuid,text,embedding)")
-    group.add_argument("--declared-space",
-                       help="User-declared embedding recipe; not verified provenance")
+                       help="Analyze a small stored CSV with the uncorrected legacy graph; no provider setup (default: off)")
+    group.add_argument("--analysis-source", metavar="CSV",
+                       help="Required with --analysis-only: local UTF-8 CSV (uuid,text,embedding); no default")
+    group.add_argument("--declared-space", metavar="LABEL",
+                       help="Required with --analysis-only; no default; " + VALUE_HINTS["--declared-space"])
     group.add_argument("--allow-legacy-source", action="store_true",
-                       help="Accept unknown generation completeness and provenance")
+                       help=("Required with --analysis-only (default: off; no value). Legacy CSV has no "
+                             "expected-input manifest: acknowledge unknown generation completeness and "
+                             "unverified provenance, even when model metadata is present"))
+    meanings = {
+        "max_records": ("N", "Maximum CSV data records; refuses excess rows, does not select first N"),
+        "max_dimension": ("N", "Maximum numbers per embedding vector"),
+        "max_source_bytes": ("BYTES", "Maximum whole CSV size in bytes (default 4 MiB, ceiling 16 MiB)"),
+        "max_pairs": ("N", "Maximum possible pairs N*(N-1)/2, before threshold filtering"),
+        "max_working_bytes": ("BYTES", "Maximum estimated working bytes (default 64 MiB, ceiling 256 MiB); not an RSS cap"),
+    }
     for name, (default, ceiling) in LIMITS.items():
+        metavar, meaning = meanings[name]
         group.add_argument(
-            "--" + name.replace("_", "-"), type=int, default=None,
-            help=f"Diagnostic limit; default {default}, hard ceiling {ceiling}",
+            "--" + name.replace("_", "-"), type=int, default=None, metavar=metavar,
+            help=f"{meaning}; positive integer, default {default}, hard ceiling {ceiling}",
         )
 
 
@@ -64,9 +110,15 @@ def validate_embeddings_args(args):
             )
     for name in ("analysis_source", "output", "declared_space"):
         if not str(args.get(name) or "").strip():
-            raise EmbeddingInputError(f"--{name.replace('_', '-')} is required with --analysis-only")
+            option = "--" + name.replace("_", "-")
+            raise EmbeddingInputError(f"{option} is required with --analysis-only and {VALUE_HINTS[option]}")
     if not args.get("allow_legacy_source"):
-        raise EmbeddingInputError("--allow-legacy-source is required: generation completeness is unknown")
+        raise EmbeddingInputError(
+            "--allow-legacy-source is required: legacy CSV has no expected-input manifest, "
+            "so generation completeness is unknown and provenance unverified. "
+            "This acknowledgement takes no value; example: --analysis-only --allow-legacy-source. "
+            "Reported model metadata does not remove this requirement"
+        )
     threshold = args.get("threshold", 0.75)
     if not math.isfinite(threshold) or not 0 < threshold <= 1:
         raise EmbeddingInputError("--threshold must be finite and in (0, 1]")

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 # language models
-from models import get_llm_engine
+from narrative_blueprint.models import get_llm_engine
 
 # storage backends
-from databases import MongoDBManager, JSONFileManager
+from narrative_blueprint.databases import MongoDBManager, JSONFileManager
 
 # import blueprint
 from narrative_blueprint import NarrativeBlueprint

@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from analysis.diagnostic_source import read_source
-from cli.analysis_options import EmbeddingInputError, effective_limits
-from cli.parser import create_main_parser
+from narrative_blueprint.analysis.diagnostic_source import read_source
+from narrative_blueprint.cli.analysis_options import EmbeddingInputError, effective_limits
+from narrative_blueprint.cli.parser import create_main_parser
 from main import main
 
 
@@ -33,7 +33,6 @@ def test_missing_option_value_has_actionable_example(option, example, capsys):
 
 
 @pytest.mark.parametrize("option,value,example", [
-    ("--declared-space", "synthetic/fixture-v1", "CLUSTERING"),
     ("--analysis-source", "unused.csv", "--analysis-source subset.csv"),
     ("--output", "unused-output", "--output results/diagnostic-01"),
     ("--allow-legacy-source", None, "takes no value"),
@@ -82,7 +81,7 @@ def test_blueprint_syntax_error_does_not_get_diagnostic_hint(capsys):
 
 def test_help_explains_values_legacy_and_limits(capsys):
     with pytest.raises(SystemExit) as raised:
-        create_main_parser().parse_args(["embeddings", "--help"])
+        create_main_parser().parse_args(["embeddings", "analyze", "--help"])
     assert raised.value.code == 0
     help_text = " ".join(capsys.readouterr().out.split())
     for expected in ["--declared-space LABEL", "--analysis-source CSV", "--output DIRECTORY",

@@ -8,7 +8,7 @@ Defines VectorModel base class
 # import modules
 import os
 
-from databases.database import Database
+from narrative_blueprint.databases.database import Database
 
 # import abstract base class
 from abc import ABC, abstractmethod

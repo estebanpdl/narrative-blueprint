@@ -22,10 +22,11 @@ compute-plus-analysis and `--skip-analysis` compute-only behavior remain
 available, with the same storage formats and default model. Those paths retain
 their existing resource and correctness limitations.
 
-Generation options (`--narrative-path`, `--model`, `--gemini-task-type`,
-`--embeddings-output`, MongoDB options and `--skip-analysis`) conflict with
-`--analysis-only`, even when an explicitly supplied model equals the compute
-default. Diagnostic-only options without `--analysis-only` also fail.
+Generation options (`--input`/`--narrative-path`, `--model`, `--gemini-task-type`,
+`--vectors-file`/`--embeddings-output`, MongoDB options and `--skip-analysis`)
+conflict with `embeddings analyze` or legacy `--analysis-only`, even when an
+explicitly supplied model equals the compute default. Diagnostic-only options
+belong to analyze (or legacy `--analysis-only`) and fail on compute.
 `--threshold` must be finite and in `(0, 1]`.
 
 Every source UUID is a nonempty string, including leading zeros; no numeric
@@ -55,8 +56,10 @@ Optional reported provenance columns are `provider`, `model_name`,
 present with the same value, or absent throughout; mixed or partially missing
 values refuse the source. Missing metadata remains null. Matching dimensions
 and matching reported labels cannot verify an embedding space.
-`--declared-space` records the user's assertion of the common recipe without
-replacing reported metadata or marking provenance verified.
+`--declared-space` optionally records the user's unverified recipe note without
+replacing reported metadata, changing computation or marking provenance verified.
+When absent, `declared_space` is null; an explicitly blank value is refused.
+Both `nblue embeddings analyze` and legacy flat syntax use this same policy.
 
 Legacy CSV has no expected-input manifest. `--allow-legacy-source` explicitly
 accepts unknown original generation completeness and provenance. Available

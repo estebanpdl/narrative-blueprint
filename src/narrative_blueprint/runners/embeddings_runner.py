@@ -16,13 +16,13 @@ def _get_embedding_storage(args: dict):
 
         extension = os.path.splitext(embeddings_output)[1].lower()
         if extension == '.csv':
-            from databases import CSVFileManager
+            from narrative_blueprint.databases import CSVFileManager
             return CSVFileManager(output_path=embeddings_output)
         if extension == '.parquet':
-            from databases import ParquetFileManager
+            from narrative_blueprint.databases import ParquetFileManager
             return ParquetFileManager(output_path=embeddings_output)
         if extension in {'.db', '.sqlite', '.sqlite3'}:
-            from databases import SQLiteManager
+            from narrative_blueprint.databases import SQLiteManager
             return SQLiteManager(output_path=embeddings_output)
         raise ValueError(
             '--embeddings-output must use .csv, .parquet, .db, .sqlite, '
@@ -35,7 +35,7 @@ def _get_embedding_storage(args: dict):
             '--embeddings-output is not provided'
         )
 
-    from databases import MongoDBManager
+    from narrative_blueprint.databases import MongoDBManager
     return MongoDBManager(
         db_name=mongo_db_name,
         collection_name=mongo_collection_name
@@ -52,15 +52,15 @@ def handle_embeddings(args: dict) -> None:
     :return: None
     :rtype: None
     '''
-    from cli.analysis_options import validate_embeddings_args
+    from narrative_blueprint.cli.analysis_options import validate_embeddings_args
 
     validate_embeddings_args(args)
     if args.get('analysis_only'):
-        from analysis.diagnostic import run_diagnostic
+        from narrative_blueprint.analysis.diagnostic import run_diagnostic
         run_diagnostic(args)
         return
 
-    from analysis import EmbeddingAnalysis
+    from narrative_blueprint.analysis import EmbeddingAnalysis
 
     embedding_model_map = {
         'gemini-embedding-001': 'Gemini',
@@ -88,9 +88,9 @@ def handle_embeddings(args: dict) -> None:
 
     # select and instantiate embedding model
     if provider == 'Gemini':
-        from embeddings import GeminiEmbeddingModel as model_class
+        from narrative_blueprint.embeddings import GeminiEmbeddingModel as model_class
     else:
-        from embeddings import OpenAIEmbeddingModel as model_class
+        from narrative_blueprint.embeddings import OpenAIEmbeddingModel as model_class
     model_options = {'model_name': model}
     if model == 'gemini-embedding-001':
         model_options['task_type'] = (

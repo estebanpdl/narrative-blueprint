@@ -1,41 +1,11 @@
-# -*- coding: utf-8 -*-
+"""Source-checkout launcher for the shared CLI."""
 
-# import modules
-import time
+from pathlib import Path
+import sys
 
-# import key arguments
-from cli import parser
-from cli.analysis_options import EmbeddingInputError
+# Prefer this checkout even if another version is installed.
+sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
+from narrative_blueprint.cli.main import main
 
-def main(argv=None):
-    # parse arguments
-    args = vars(parser.parse_args(argv))
-
-    # start process
-    log_text = f'''
-    > Starting program at: {time.ctime()}
-
-    '''
-    print ('\n\n' + ' '.join(log_text.split()).strip() + '\n\n')
-
-    # command dispatcher
-    command = args.pop('command')
-    try:
-        if command == 'embeddings':
-            from runners.embeddings_runner import handle_embeddings
-            handle_embeddings(args)
-        else:
-            from runners.blueprint_runner import handle_blueprint
-            handle_blueprint(args)
-    except EmbeddingInputError as exc:
-        parser.error(str(exc))
-
-    # end process
-    log_text = f'''
-    > Ending program at: {time.ctime()}
-
-    '''
-    print ('\n\n' + ' '.join(log_text.split()).strip())
-
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    main(prog="python main.py")

@@ -42,8 +42,9 @@ python main.py embeddings --narrative-path text.csv --embeddings-output vectors.
 ```
 
 The combined path reads the whole chosen store, including older records; it
-has not become a scalable or provenance-selected workflow. Its legacy graph
+is not a scalable or provenance-selected workflow. Its legacy graph
 can lose cross-block pairs and isolates, collapse duplicate texts and count
 bridge edges in multiple communities. Projector and vector outputs may exist
-before graph failure. There are no new provider budgets, retries, snapshot
-selection or memory guarantees in this command organization.
+before graph failure. The command does not add a spend cap, snapshot
+selection or an enforced memory ceiling; provider retry behavior remains in the
+existing adapters.

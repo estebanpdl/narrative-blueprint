@@ -134,7 +134,7 @@ class EmbeddingAnalysis:
     def _embedding_projector(self, narratives: list[str],
                              embeddings: list[list[float]]) -> None:
         '''
-        Project embeddings into TensorFlow's embedding projector.
+        Write vector and text TSV files for manual import into Embedding Projector.
 
         :param narratives: The narratives to be projected.
         :type narratives: list[str]
@@ -377,7 +377,7 @@ class EmbeddingAnalysis:
 
     def run_embedding_analysis(self) -> None:
         '''
-        Runs the full pipeline to embed narratives.
+        Compute/store vectors, then optionally export and analyze the chosen store.
         '''
         narratives = self.narratives['narrative'].tolist()
         uuids = self.narratives['uuid'].tolist()

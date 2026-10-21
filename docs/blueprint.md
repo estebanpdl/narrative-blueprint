@@ -30,5 +30,6 @@ python main.py blueprint --narrative-path text.csv --prompt-template prompt.toml
 
 There is no CLI cost ceiling or dry-run mode. A sample count is not a spend cap.
 Model configuration lists software defaults, not guaranteed current provider
-availability. Existing prompt examples retain their interpretation assumptions;
-provider output is not independent verification of claims or intent.
+availability. The supplied prompt examples assume a suspected disinformation
+context and ask for inferred tactics, audience, and intent. Provider output does
+not verify that premise, a claim's truth, or the author's intent.

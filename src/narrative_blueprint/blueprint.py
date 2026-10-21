@@ -24,14 +24,14 @@ class NarrativeBlueprint:
         Initialize the Narrative Blueprint engine.
 
         :param llm_engine: The LLM engine to be used for narrative blueprint
-            processing. Must be a subclass of `LanguageModel`.
+            processing. Must be an instance of `LanguageModel`.
 
-            Available options:
-            - OpenAIGPT: models/openai_client.py
+            Implementations include OpenAIGPT and GeminiModels in
+            narrative_blueprint.models.
 
         :type llm_engine: LanguageModel
 
-        :raises TypeError: If the provided `llm_engine` is not a subclass
+        :raises TypeError: If the provided `llm_engine` is not an instance
             of `LanguageModel`.
 
         :param storage: The storage backend for results.
@@ -40,10 +40,9 @@ class NarrativeBlueprint:
         :param args: Additional arguments to be passed to the Narrative Blueprint framework.
         :type args: dict
 
-        Example:
-            >>> from narrative_blueprint.models.openai_client import OpenAIGPT
-            >>> llm_engine = OpenAIGPT(model="gpt-4o-mini")
-            >>> blueprint = NarrativeBlueprint(llm_engine=llm_engine)
+        The blueprint CLI supplies the model, storage, and args. The args
+        mapping requires narrative_path; running analysis also requires
+        prompt_template.
         '''
         # get arguments
         args = args or {}
@@ -225,7 +224,7 @@ class NarrativeBlueprint:
         print('Running narrative blueprint analysis...')
 
         # real-time storage for non-JSON backends (e.g. MongoDB)
-        # JSON backend batches writes at the end
+        # JSON results are held until the provider batch returns.
         use_realtime = not isinstance(self.storage, JSONFileManager)
         on_result = self.storage.insert_one if use_realtime else None
 
@@ -235,7 +234,7 @@ class NarrativeBlueprint:
             on_result=on_result,
         )
 
-        # batch-write for JSON backend
+        # Each JSON append rewrites the file after provider tasks finish.
         if not use_realtime:
             for doc in results:
                 self.storage.insert_one(doc)

@@ -2,9 +2,8 @@
 
 ## Install from a checkout
 
-The package currently declares Python `>=3.14,<3.15`, the runtime series tested
-with this release. Earlier README claims of Python 3.8 support were not backed
-by this dependency/runtime validation. Other Python series are not qualified.
+The package declares Python `>=3.14,<3.15`. Use Python 3.14; other runtime
+series are outside this package's declared compatibility range.
 
 In your chosen Python 3.14 environment, from the checkout root:
 
@@ -23,7 +22,7 @@ Runtime code lives only in `src/narrative_blueprint/`. Model defaults are packag
 resources and do not depend on the current directory. Explicit input, template
 and output paths remain relative to the invocation directory. Legacy generation
 credentials still come from environment variables and invocation-relative
-`config/.env`; there is no new per-user credential store or auth command.
+`config/.env`. Per-user credential storage and auth commands are not provided.
 Help and offline diagnostics do not read that file. Prompt templates are explicit
 user files; the checkout's `prompt_examples/` supplies examples, not a hidden default.
 

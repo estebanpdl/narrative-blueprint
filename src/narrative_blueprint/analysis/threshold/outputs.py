@@ -31,17 +31,29 @@ class Exports:
         count = 0
         hasher = hashlib.sha256()
         with path.open("xb") as stream:
+            pending = bytearray()
+
+            def flush():
+                self.scratch.disk(len(pending) + 65536)
+                stream.write(pending)
+                pending.clear()
+
             for values in itertools.chain((HEADERS[name],), rows):
                 buffer = io.StringIO(newline="")
                 csv.writer(buffer).writerow(values)
                 data = buffer.getvalue().encode("utf-8")
                 self.scratch.budget.limits.check("max_record_bytes", len(data))
                 self.scratch.budget.limits.check("max_export_bytes", self.bytes + len(data))
-                self.scratch.disk(len(data) + 65536)
-                stream.write(data)
+                if pending and len(pending) + len(data) > 65536:
+                    flush()
+                pending.extend(data)
+                if len(pending) >= 65536:
+                    flush()
                 hasher.update(data)
                 self.bytes += len(data)
                 count += 1
+            if pending:
+                flush()
             stream.flush()
             os.fsync(stream.fileno())
         self.files[name] = {"rows": count - 1, "bytes": path.stat().st_size, "sha256": hasher.hexdigest()}
@@ -133,7 +145,9 @@ def validate_tables(exports, snapshot, run_id, result):
                 if actual is sentinel or row is sentinel or actual != ["" if value is None else str(value) for value in row]:
                     raise AnalysisRefused("output_join")
                 count += 1
-                budget.tick()
+                if count % 256 == 0:
+                    budget.tick()
+        budget.tick()
         if count != exports.files[name]["rows"] or count != expected_counts.get(name, count):
             raise AnalysisRefused("output_counts")
     selected = snapshot.execute("SELECT count(*) FROM records").fetchone()[0]

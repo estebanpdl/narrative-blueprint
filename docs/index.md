@@ -14,6 +14,7 @@ dependencies are installed.
 | Analyze all valid occurrences with corrected global threshold edges | [Global similarity](global-similarity.md) |
 | Read assignments, communities, bridges and optional views | [Analysis outputs](analysis-outputs.md) |
 | Configure graph admission and interpret refusals | [Analysis limits](analysis-limits.md) |
+| Inspect full-path measurements and the exact-kNN comparison | [Qualification](qualification.md) |
 | Migrate scripts and understand alias conflicts | [CLI compatibility](cli-compatibility.md) |
 | Understand diagnostic inputs, outputs, limits and CSV subsetting | [Analysis-only guide](analysis-only.md) |
 | Inspect exact identities and implemented versus specified behavior | [Stored-vector contract](embedding-analysis-contract.md) |
@@ -26,4 +27,4 @@ independent operations; neither calls the other.
 The small CSV compatibility diagnostic and combined compute analysis still use
 the legacy graph. The separate snapshot analysis route supplies corrected global
 occurrence graphs and complete CSV publication. Auth commands, paid provider
-budgets and broad scale qualification are separate work.
+budgets and qualification on additional machines remain separate work.

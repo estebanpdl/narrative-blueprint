@@ -30,7 +30,9 @@ leading zeros, remain available in assignments. Source reordering can change
 legacy snapshot-derived occurrence IDs; permutation reproducibility requires the
 same stable occurrence IDs, not merely equal text.
 
-Two-dimensional tiles visit all `N*(N-1)/2` unordered pairs. There is no preliminary
+Two-dimensional tiles visit all `N*(N-1)/2` unordered pairs. Threshold selection
+and pair extraction use NumPy masks; a whole tile is admitted before its pairs
+are inserted. This batching preserves the strict numeric rule below. There is no preliminary
 within-block filter or dense survivor matrix. Scores use float64 renormalization
 and dot products of the snapshot's normalized float32 vectors, then clipping to
 `[-1, 1]`. An edge is retained exactly when:
@@ -72,6 +74,10 @@ These compatibility paths do not acquire corrected behavior merely by upgrading.
 Corrected results intentionally differ: cross-block matches are recovered, every
 valid occurrence survives, and bridge edges no longer inflate internal community
 statistics. Similarity is still a diagnostic property of the supplied embedding
-space. No kNN, ANN, topics, or semantic claims are added.
+space. The [qualification experiment](qualification.md) compares exact kNN using
+existing NumPy operations; it is a benchmark, not a production analysis mode.
+The production default remains exhaustive threshold. kNN omits qualifying pairs;
+union symmetry can give nodes degree greater than k, while mutual symmetry can
+isolate nodes, especially under ties. No ANN or narrative-validity claim is added.
 
 See [output interpretation](analysis-outputs.md) and [limits and refusals](analysis-limits.md).

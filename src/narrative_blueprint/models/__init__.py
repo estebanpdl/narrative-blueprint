@@ -19,7 +19,7 @@ def get_llm_engine(model_name: str) -> LanguageModel:
     '''
     Factory function to get the appropriate LLM engine for a model.
     
-    :param model_name: The name of the model (e.g., 'gpt-4o-mini', 'gemini-2.5-flash-preview-05-20')
+    :param model_name: The name of the model (e.g., 'gpt-4o-mini', 'gemini-2.5-flash-lite')
     :return: An instance of the appropriate LLM class
     :raises ValueError: If the model is not found in model_limits.json
     '''

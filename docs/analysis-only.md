@@ -117,8 +117,8 @@ uuid,text,embedding
 
 ## Try a larger CSV using a small subset
 
-A roughly 99 MB file exceeds even the 16 MiB hard ceiling. The diagnostic
-cannot analyze it directly or stream the first few rows through `--max-records`.
+A CSV larger than the 16 MiB hard ceiling cannot be analyzed directly. The
+diagnostic does not stream the first few rows through `--max-records`.
 First create a separate small CSV, then pass that file to `--analysis-source`.
 Start with 10 records and the default limits. This is an ordered convenience
 subset, not random sampling or a representative estimate of the corpus.

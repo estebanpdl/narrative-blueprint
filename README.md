@@ -6,9 +6,7 @@
 
 ![Python](https://img.shields.io/badge/python-3.14-blue.svg)
 ![Active Development](https://img.shields.io/badge/status-active%20development-orange.svg)
-![Open Source](https://img.shields.io/badge/open%20source-MIT-blue.svg)
 ![AI Research](https://img.shields.io/badge/AI-research-purple.svg)
-[![Research](https://img.shields.io/badge/Research-Narrative%20Analysis-red?style=flat&logo=academia&logoColor=white)]()
 ![Made with Love](https://img.shields.io/badge/made%20with%20❤️-python-red.svg)
 
 </div>
@@ -21,36 +19,34 @@
 
 <br>
 
-Narrative Blueprint is an AI-driven analysis framework that uses LLMs to analyze narratives, content patterns, and information structures. The tool is particularly powerful for information warfare and disinformation analysis, but its flexibility makes it valuable for any domain requiring structured narrative intelligence.
+Narrative Blueprint applies user-supplied TOML prompts to text records with OpenAI or Google Gemini models and stores the returned JSON documents. Separate commands compute embeddings through a provider and inspect a small CSV of existing vectors locally.
+
+The project is in active development. Generated labels and similarity groups are material for human review; they do not establish truth, intent, coordination, or how common a view is in a population. See the [documentation index](docs/index.md) for current command behavior and limitations.
 
 ## ✨ Key Features
 
 ### 🧠 AI-Powered Analysis
 - **Multi-Provider LLM Support**: Works with OpenAI GPT and Google Gemini models
-- **Multilingual Prompt Support**: Create analysis instructions in any language - English, Spanish, or any language of your choice
+- **Multilingual Prompts**: Supply prompt instructions in English, Spanish, or another language; analytical quality needs separate evaluation for each language and task
 
 ### 📊 Intelligence Capabilities
-- **Narrative Pattern Recognition**: Identify recurring themes, tactics, and messaging strategies
-- **Content Categorization**: Systematically classify narratives across multiple dimensions
+- **Labels from Your Prompt**: Request candidate topics, claims, or rhetorical descriptions using your chosen template
+- **Stored-Vector Diagnostics**: Inspect similarity groups in a small CSV, with explicit limits and documented legacy graph behavior
 
 ### 🔧 Technical Architecture
 - **Flexible Storage**: Save blueprints to MongoDB or JSON, and embeddings to MongoDB, CSV, Parquet, or SQLite
-- **Parallel Processing**: Efficient batch analysis of large narrative datasets
+- **Concurrent Blueprint Requests**: Process prompts with a thread pool and local pacing; this does not establish large-corpus capacity or provider quota guarantees
 - **Custom Prompt Engineering**: Flexible template system for domain-specific analysis
 - **Multi-format Support**: Process CSV, XLSX, and JSON input files
 
 ## 🎯 Use Cases
 
-### Information Warfare Analysis
-- **Disinformation Campaign Detection**: Identify coordinated inauthentic behavior patterns
-- **Propaganda Analysis**: Decode persuasion techniques and messaging strategies
-- **Social Media Intelligence**: Analyze narrative spread across platforms
-- **Threat Actor Profiling**: Characterize adversarial communication patterns
+### Content Review
+- **Media and Public Discourse**: Organize model-generated topic or claim descriptions for review against the source text
+- **Research and Monitoring**: Apply a consistent prompt to selected records, then assess the outputs with a documented method
+- **Similarity Exploration**: Inspect related stored texts within the diagnostic limits
 
-### Content Intelligence
-- **Media Monitoring**: Track narrative evolution across news cycles
-- **Policy Impact Assessment**: Analyze public discourse around policy changes
-- **Crisis Communication**: Track narrative dynamics during critical events
+Campaign attribution, cross-platform spread, actor intent, and policy impact require evidence and analysis beyond these outputs.
 
 ## 🛠️ Installation
 
@@ -81,7 +77,7 @@ cp config/.env.template config/.env
 
 See the [documentation index](docs/index.md) and [provider-free quick start](docs/quick-start.md).
 The canonical commands are `nblue blueprint`, `nblue embeddings compute`, and
-`nblue embeddings analyze`. Existing `python main.py` commands and old flags below
+`nblue embeddings analyze`. The source launcher `python main.py` and compatibility aliases
 remain supported through 1.x; see the [migration map](docs/cli-compatibility.md).
 Source-only clone use requires `python -m pip install -r requirements.txt`.
 The package is installed from the checkout; these instructions do not imply a
@@ -122,7 +118,7 @@ uuid,narrative
 
 ## 🎨 Prompt Engineering
 
-The tool reads and executes custom TOML prompt templates that you create. You define how the AI analyzes your narratives through these templates.
+The tool loads your TOML system and message prompts, substitutes the source text into `${narrative}`, and sends those messages to the selected model. The template defines the requested interpretation and output fields.
 
 ### Template Structure
 ```toml
@@ -140,7 +136,9 @@ Analysis instructions with ${narrative} placeholder...
 ### Available Templates
 - **`prompt_examples/narrative_blueprint_EN.toml`**: English disinformation analysis
 - **`prompt_examples/narrative_blueprint_ES.toml`**: Spanish disinformation analysis
-- **Create your own**: Templates can be developed in any language for global applicability
+- **Create your own**: Choose instructions and output fields suited to your evidence and research question
+
+These example prompts assume a suspected disinformation context and request inferred tactics, audience, and intent. They do not test that assumption or verify a campaign. Review the instructions before use; adapting them changes the analysis. Evaluate each language separately before comparing outputs.
 
 ### Custom Template Development
 You can create domain-specific analysis by:
@@ -152,9 +150,11 @@ You can create domain-specific analysis by:
 
 ## 🚀 Usage
 
+The following generation commands are syntax examples that require your own input files, prompt, and provider credentials. They can incur provider charges. Model names shown are present in the packaged configuration; their presence does not verify current remote availability. For a provider-free example, use the stored-vector diagnostic below.
+
 ### JSON File Output (no MongoDB required)
 ```bash
-python main.py \
+python main.py blueprint \
   --model gpt-4o-mini \
   --prompt-template prompt_examples/narrative_blueprint_EN.toml \
   --narrative-path data/narratives.csv \
@@ -163,7 +163,7 @@ python main.py \
 
 ### MongoDB Output
 ```bash
-python main.py \
+python main.py blueprint \
   --model gpt-4o-mini \
   --prompt-template prompt_examples/narrative_blueprint_EN.toml \
   --narrative-path data/narratives.csv \
@@ -173,8 +173,8 @@ python main.py \
 
 ### Using Google Gemini
 ```bash
-python main.py \
-  --model gemini-2.5-flash-preview-05-20 \
+python main.py blueprint \
+  --model gemini-2.5-flash-lite \
   --prompt-template prompt_examples/narrative_blueprint_EN.toml \
   --narrative-path data/narratives.csv \
   --output results.json
@@ -182,8 +182,8 @@ python main.py \
 
 ### Limiting Sample Size
 ```bash
-python main.py \
-  --model gpt-4o \
+python main.py blueprint \
+  --model gpt-4o-mini \
   --prompt-template custom_analysis.toml \
   --narrative-path large_dataset.xlsx \
   --sample-size 1000 \
@@ -206,8 +206,8 @@ python main.py \
 
 ### Storage Behavior
 
-- **MongoDB**: Each result is stored in real time as it is processed. This provides resilience against interruptions — completed results are persisted immediately.
-- **JSON file**: Results are written to the file after all processing completes. If the output file already exists, previously processed UUIDs are skipped (deduplication).
+- **MongoDB**: A result callback writes each returned document as provider tasks finish. This is per-document persistence, not an all-or-nothing run transaction.
+- **JSON file**: Results are held until the provider task batch returns, then appended one at a time; each append rewrites the JSON file. This is not atomic publication. UUIDs found in the loaded output are excluded from the next input selection. An interruption can leave generated results unpersisted or a write incomplete.
 
 ## Embeddings
 
@@ -269,7 +269,9 @@ python -m pytest tests -q
 
 ### Compute and store embeddings
 
-The `embeddings` command stores vectors in MongoDB by default. Use
+Use `nblue embeddings compute` for generation; the flat `python main.py embeddings` examples below remain compatibility syntax. This path can contact a provider.
+
+The compute command stores vectors in MongoDB by default. Use
 `--embeddings-output` to select a local CSV, Parquet, or SQLite file instead.
 The existing `-o, --output` option remains the directory for projector and
 similarity-analysis files.
@@ -337,7 +339,7 @@ python main.py embeddings \
 
 ## 📊 Output Structure
 
-Results are stored as JSON documents with structured analysis:
+Blueprint fields depend on the chosen prompt. The following abbreviated, invented example illustrates the English template; it is not a verified finding or a fixed schema enforced by the application:
 
 ```json
 {

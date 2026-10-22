@@ -94,7 +94,7 @@ class LanguageModel(ABC):
 
     def get_model_limits(self) -> dict:
         '''
-        Retrieve the model limits from the configuration file.
+        Read provider/model request and token defaults from packaged resources.
 
         :return: A dictionary containing model limits for different providers and models.
         :rtype: dict
@@ -182,8 +182,8 @@ class LanguageModel(ABC):
         '''
         Enforce rate limits for API requests.
 
-        This method ensures that the number of requests and tokens used per minute does not exceed
-        the specified limits.
+        Pace requests using local rolling counters and estimated token demand.
+        These estimates do not guarantee provider quota or spend limits.
 
         :param estimated_tokens: The estimated tokens in the prompt.
         :type estimated_tokens: int

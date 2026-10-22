@@ -92,7 +92,7 @@ class Scratch:
                 CREATE TABLE nodes (node INTEGER PRIMARY KEY, occurrence_id TEXT UNIQUE,
                     source_uuid TEXT, text_hash TEXT, text TEXT, source_ordinal INTEGER,
                     community INTEGER, outcome TEXT);
-                CREATE TABLE edges (i INTEGER, j INTEGER, weight REAL, PRIMARY KEY(i,j));
+                CREATE TABLE edges (i INTEGER, j INTEGER, weight REAL);
             ''')
         except BaseException:
             self.db.close()

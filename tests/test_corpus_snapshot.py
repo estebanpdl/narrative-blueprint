@@ -295,7 +295,9 @@ def test_disk_budget_admitted_before_output_creation(tmp_path):
 
 
 def test_hot_rollback_journal_refused_without_recovery(tmp_path):
-    path = source(tmp_path, [record(str(i), text="x" * 500) for i in range(5000)], "sqlite")
+    # Exceed the one-page cache without making a crash fixture depend on bulk
+    # disk throughput. The assertion below still proves uncommitted page spill.
+    path = source(tmp_path, [record(str(i), text="x" * 500) for i in range(256)], "sqlite")
     subprocess.run([sys.executable, "-I", "-c", '''
 import os, sqlite3, sys
 db = sqlite3.connect(sys.argv[1])

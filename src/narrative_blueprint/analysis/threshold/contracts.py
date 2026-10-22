@@ -81,22 +81,32 @@ def process_memory():
         if not query(handle(), ctypes.byref(counters), counters.cb):
             raise OSError("Cannot measure process memory")
         return {"current_bytes": counters.current, "peak_bytes": counters.peak,
-                "private_bytes": counters.private, "measurement": "windows-working-set"}
+                "private_bytes": counters.private, "peak_private_bytes": counters.peak_pagefile,
+                "measurement": "windows-working-set"}
     import resource
     import sys
     peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (1 if sys.platform == "darwin" else 1024)
     return {"current_bytes": peak, "peak_bytes": peak, "private_bytes": None,
+            "peak_private_bytes": None,
             "measurement": "posix-peak-rss"}
 
 
 def tile_bytes(rows, dimension):
     # Two float64 blocks, float32 read buffers, normalization temporaries,
-    # score block and a same-sized BLAS scratch reserve; no NxN allocation.
-    return 48 * rows * dimension + 16 * rows * rows + 65536
+    # Scores, masks, accepted index/weight arrays and BLAS scratch are bounded
+    # by the tile even for a fully accepted block; no NxN allocation.
+    return 48 * rows * dimension + 48 * rows * rows + 65536
 
 
 def graph_bytes(nodes, edges):
-    return 65536 + 1024 * nodes + 1024 * edges
+    # Calibrated on CPython/NetworkX; see docs/qualification.md for measured
+    # shapes and safety margins. Requalify when changing graph representations.
+    return 65536 + 1024 * nodes + 512 * edges
+
+
+def clustering_bytes(nodes, edges):
+    """Additional workspace above the admitted graph, including coarsening."""
+    return 8 * 1024**2 + 2048 * nodes + 768 * edges
 
 
 class Budget:
@@ -130,8 +140,9 @@ class Budget:
     def admit_graph(self, nodes, edges):
         self.limits.check("max_edges", edges)
         graph = graph_bytes(nodes, edges)
-        clustering = 3 * graph  # graph copies, coarsened graphs and Python memberships
+        clustering = clustering_bytes(nodes, edges)
         self.limits.check("max_graph_bytes", graph)
         self.limits.check("max_clustering_bytes", clustering)
         self.limits.check("max_working_bytes", self.baseline + graph + clustering + 16 * self.limits.max_record_bytes + 8 * 1024**2)
-        return {"graph_bytes": graph, "clustering_bytes": clustering}
+        return {"graph_bytes": graph, "clustering_bytes": clustering,
+                "memory_estimate_version": "networkx-calibrated-1"}

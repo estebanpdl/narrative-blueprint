@@ -6,6 +6,9 @@ last after table counts, source joins and SHA-256 checksums are verified. Files 
 `status.json` alone are not success. A refused, interrupted or failed run can leave
 a `.staging-<UUID>` or uncompleted `run-<UUID>` directory. Prior complete runs are
 never replaced. There is no automatically overwritten "latest" pointer.
+Failed directories can retain full text, occurrence IDs and vectors in scratch
+files, in addition to partial exports. Apply the input's privacy/retention rules
+to them; they are not value-free diagnostic logs.
 
 | File | Meaning |
 | --- | --- |

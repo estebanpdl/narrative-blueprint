@@ -19,6 +19,16 @@ def read_tile(stream, start, stop, dimension):
     return vectors
 
 
+def select_pairs(scores, diagonal, parameters):
+    """Apply the scalar numeric contract to one already computed score tile."""
+    boundary = np.abs(scores - parameters.threshold) <= parameters.tolerance
+    accepted = scores >= parameters.threshold
+    if diagonal:
+        boundary = np.triu(boundary, k=1)
+        accepted = np.triu(accepted, k=1)
+    return accepted, int(np.count_nonzero(boundary))
+
+
 def discover_edges(scratch, nodes, dimension, parameters):
     budget = scratch.budget
     rows = budget.admit(nodes, dimension)
@@ -32,25 +42,36 @@ def discover_edges(scratch, nodes, dimension, parameters):
                 right = read_tile(stream, second, min(nodes, second + rows), dimension)
                 scores = left @ right.T
                 np.clip(scores, -1.0, 1.0, out=scores)
-                for a in range(len(left)):
-                    begin = a + 1 if first == second else 0
-                    accepted = []
-                    for b in range(begin, len(right)):
-                        comparisons += 1
-                        weight = float(scores[a, b])
-                        boundary_pairs += abs(weight - parameters.threshold) <= parameters.tolerance
-                        if weight >= parameters.threshold:
-                            accepted.append((first + a, second + b, weight))
-                    budget.admit_graph(nodes, count + len(accepted))
-                    scratch.disk(65536 + 256 * len(accepted))
-                    scratch.db.executemany("INSERT INTO edges VALUES (?,?,?)", accepted)
-                    count += len(accepted)
-                    budget.tick()
+                accepted, boundary = select_pairs(scores, first == second, parameters)
+                if first == second:
+                    comparisons += len(left) * (len(left) - 1) // 2
+                else:
+                    comparisons += len(left) * len(right)
+                boundary_pairs += boundary
+                added = int(np.count_nonzero(accepted))
+                # Admit the entire tile before extracting or inserting any pair.
+                budget.admit_graph(nodes, count + added)
+                scratch.disk(65536 + 256 * added)
+                a, b = np.nonzero(accepted)
+                weights = scores[a, b]
+                a += first
+                b += second
+                scratch.db.executemany("INSERT INTO edges VALUES (?,?,?)",
+                    zip(map(int, a), map(int, b), map(float, weights)))
+                count += added
                 scratch.db.commit()
-                del right, scores
+                budget.tick()
+                del right, scores, accepted, a, b, weights
             del left
     if comparisons != nodes * (nodes - 1) // 2:
         raise AnalysisRefused("comparison_count")
+    # Tiled inserts revisit earlier node ranges. Maintaining a B-tree on every
+    # insertion causes random disk writes once it exceeds the bounded cache.
+    # Append first, then build/verify the canonical unique index once, reserving
+    # space for its external sort and final pages before SQLite allocates them.
+    scratch.disk(65536 + 64 * count)
+    scratch.db.execute("CREATE UNIQUE INDEX edges_pair ON edges(i,j)")
+    scratch.db.commit()
     scratch.disk()
     return {"nodes": nodes, "edges": count, "comparisons": comparisons, "boundary_pairs": boundary_pairs,
             "tile_rows": rows, "comparison_seconds": time.perf_counter() - started}
@@ -68,6 +89,8 @@ def cluster_graph(scratch, result, parameters):
         if index % 4096 == 0:
             budget.tick()
     budget.tick()
+    conversion_seconds = time.perf_counter() - started
+    louvain_started = time.perf_counter()
     # Direct cases avoid modularity division by zero and preserve all isolates.
     if not edges:
         groups = ({node} for node in range(nodes))
@@ -75,6 +98,7 @@ def cluster_graph(scratch, result, parameters):
         groups = nx.community.louvain_communities(graph, weight="weight", seed=parameters.seed,
                                                 resolution=parameters.resolution)
     budget.tick()
+    louvain_seconds = time.perf_counter() - louvain_started
     community_count = isolates = 0
     for members in groups:
         label = min(members)
@@ -89,6 +113,7 @@ def cluster_graph(scratch, result, parameters):
     scratch.disk()
     return {**result, **estimates, "communities": community_count, "isolates": isolates,
             "clustering_seconds": time.perf_counter() - started,
+            "conversion_seconds": conversion_seconds, "louvain_seconds": louvain_seconds,
             "parameters": asdict(parameters), "networkx_version": nx.__version__, "numpy_version": np.__version__,
             "node_order": "occurrence_id ascending (SQLite BINARY)",
             "edge_order": "canonical node index i,j ascending",

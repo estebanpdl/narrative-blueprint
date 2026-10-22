@@ -24,7 +24,7 @@ def _analysis_output(parser, diagnostic=False):
 
 def create_embeddings_parser(subparsers):
     parser = subparsers.add_parser(
-        "embeddings", help="Compute vectors or analyze a small stored CSV", allow_abbrev=False,
+        "embeddings", help="Compute vectors, validate snapshots or analyze similarities", allow_abbrev=False,
         epilog="Legacy flat options remain supported through 1.x. See docs/cli-compatibility.md.",
     )
     modes = parser.add_subparsers(dest="embedding_command", required=True, title="Embedding commands")
@@ -54,12 +54,14 @@ def create_embeddings_parser(subparsers):
     compute.add_argument("--skip-analysis", action="store_true",
                          help="Compute/store only; no projector, similarity graph or Excel exports")
 
-    analyze = modes.add_parser("analyze", help="Provider-free diagnostic of a small stored CSV",
+    analyze = modes.add_parser("analyze", help="Corrected snapshot analysis or legacy small-CSV diagnostic",
                                epilog=ANALYSIS_EPILOG, formatter_class=RawDescriptionHelpFormatter,
                                allow_abbrev=False)
     analyze.set_defaults(analysis_only=True)
     _analysis_output(analyze, diagnostic=True)
     add_analysis_options(analyze)
+    from .graph_options import add_graph_options
+    add_graph_options(analyze)
     from .snapshot_options import add_snapshot_parser
     add_snapshot_parser(modes)
     return parser

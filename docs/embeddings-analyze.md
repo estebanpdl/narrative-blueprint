@@ -1,5 +1,12 @@
 # nblue embeddings analyze
 
+Use `nblue embeddings analyze --snapshot-dir SNAPSHOT --analysis-dir RESULTS`
+for corrected global occurrence analysis. See [the complete fixture commands](global-similarity.md),
+[outputs](analysis-outputs.md) and [limits](analysis-limits.md).
+The CSV `--source` route described below remains the legacy diagnostic.
+
+## Legacy CSV diagnostic
+
 Read one small local UTF-8 CSV of existing vectors and produce diagnostic JSON.
 No provider, credential loader or Mongo connection is used. The graph remains
 the uncorrected legacy algorithm; [limitations and outputs](analysis-only.md)

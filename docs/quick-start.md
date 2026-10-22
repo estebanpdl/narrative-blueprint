@@ -1,5 +1,9 @@
 # Quick start
 
+For the corrected occurrence graph, start with the two synthetic commands in
+[global similarity analysis](global-similarity.md). The small CSV example below
+demonstrates the retained legacy diagnostic only.
+
 ## Install from a checkout
 
 The package declares Python `>=3.14,<3.15`. Use Python 3.14; other runtime

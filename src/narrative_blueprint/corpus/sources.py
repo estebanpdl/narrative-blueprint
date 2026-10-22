@@ -16,7 +16,6 @@ class LimitedLines:
     def __init__(self, stream, limits):
         self.stream, self.limits = stream, limits
         self.record_bytes = self.total_bytes = 0
-        self.sha = hashlib.sha256()
 
     def __iter__(self):
         return self
@@ -29,7 +28,6 @@ class LimitedLines:
         self.total_bytes += len(raw)
         self.limits.check("max_record_bytes", self.record_bytes)
         self.limits.check("max_source_bytes", self.total_bytes)
-        self.sha.update(raw)
         try:
             return raw.decode("utf-8-sig" if self.total_bytes == len(raw) else "utf-8")
         except UnicodeDecodeError as exc:
@@ -61,10 +59,22 @@ def csv_rows(path, fields, limits):
             csv.field_size_limit(previous)
 
 
+def check_sqlite_sidecars(path):
+    """Immutable reads cannot recover or incorporate pending SQLite journals."""
+    for suffix, reason, guidance in (
+        ("-wal", "sqlite_wal_active", "checkpoint/close or export the source before validation"),
+        ("-journal", "sqlite_journal_active", "recover/close or export the source outside this command before validation"),
+    ):
+        try:
+            size = path.with_name(path.name + suffix).stat().st_size
+        except FileNotFoundError:
+            continue
+        if size:
+            raise SnapshotRefused(reason, guidance)
+
+
 def sqlite_rows(path, fields, limits):
-    wal = path.with_name(path.name + "-wal")
-    if wal.exists() and wal.stat().st_size:
-        raise SnapshotRefused("sqlite_wal_active", "checkpoint/close or export the source before validation")
+    check_sqlite_sidecars(path)
     # Immutable mode prevents journal/SHM creation; only quiescent standalone
     # databases are admitted, with source change checks on completion.
     connection = sqlite3.connect(path.resolve().as_uri() + "?mode=ro&immutable=1", uri=True)
@@ -144,9 +154,8 @@ class LocalSource:
             after = path.stat()
             if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
                 raise SnapshotRefused("source_changed")
-            wal = path.with_name(path.name + "-wal")
-            if extension in (".sqlite", ".sqlite3", ".db") and wal.exists() and wal.stat().st_size:
-                raise SnapshotRefused("source_changed")
+            if extension in (".sqlite", ".sqlite3", ".db"):
+                check_sqlite_sidecars(path)
             self.fingerprint = hasher.hexdigest()
 
         stream = records()

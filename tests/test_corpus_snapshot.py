@@ -6,6 +6,8 @@ import csv
 import json
 import math
 import sqlite3
+import subprocess
+import sys
 
 import pytest
 
@@ -290,3 +292,86 @@ def test_disk_budget_admitted_before_output_creation(tmp_path):
     with pytest.raises(SnapshotRefused, match="max_disk_bytes"):
         snapshot(tmp_path, [record()], limits=replace(SnapshotLimits(), max_disk_bytes=1024))
     assert not (tmp_path / "snapshot").exists()
+
+
+def test_hot_rollback_journal_refused_without_recovery(tmp_path):
+    path = source(tmp_path, [record(str(i), text="x" * 500) for i in range(5000)], "sqlite")
+    subprocess.run([sys.executable, "-I", "-c", '''
+import os, sqlite3, sys
+db = sqlite3.connect(sys.argv[1])
+db.execute("PRAGMA journal_mode=DELETE")
+db.execute("PRAGMA cache_size=1")
+db.execute("BEGIN")
+db.execute("UPDATE embeddings SET text='uncommitted synthetic change'")
+os._exit(0)
+''', str(path)], check=True, timeout=30)
+    journal = path.with_name(path.name + "-journal")
+    assert journal.stat().st_size > 0
+    # Confirm the fixture contains spilled, uncommitted pages: an unguarded
+    # immutable reader sees them without recovering the journal.
+    db = sqlite3.connect(path.as_uri() + "?mode=ro&immutable=1", uri=True)
+    try:
+        assert db.execute("SELECT count(*) FROM embeddings WHERE text='uncommitted synthetic change'").fetchone()[0] > 0
+    finally:
+        db.close()
+    before = {file: file.read_bytes() for file in (path, journal)}
+    with pytest.raises(SnapshotRefused, match="sqlite_journal_active"):
+        build_snapshot(path, tmp_path / "out", allow_legacy_source=True)
+    assert not (tmp_path / "out/snapshot.json").exists()
+    status = json.loads((tmp_path / "out/status.json").read_text())
+    assert status["reason"] == "sqlite_journal_active" and status["counts"]["selected"] == 0
+    assert {file: file.read_bytes() for file in before} == before
+
+
+@pytest.mark.parametrize("suffix,reason", [("-journal", "sqlite_journal_active"), ("-wal", "sqlite_wal_active")])
+def test_sqlite_sidecar_created_during_read_refuses_fingerprint(tmp_path, suffix, reason):
+    path = source(tmp_path, [record()], "sqlite")
+    before = path.read_bytes()
+    sidecar = path.with_name(path.name + suffix)
+    reader = LocalSource(path)
+    with pytest.raises(SnapshotRefused, match=reason):
+        with reader.open() as rows:
+            next(rows)
+            sidecar.write_bytes(b"synthetic pending writes")
+            next(rows)
+    assert reader.fingerprint is None
+    assert path.read_bytes() == before
+    assert sidecar.read_bytes() == b"synthetic pending writes"
+    path.unlink()  # Closed reader handles permit removal on Windows.
+
+
+def test_empty_sqlite_sidecars_do_not_refuse_or_change_source(tmp_path):
+    path = source(tmp_path, [record()], "sqlite")
+    before = path.read_bytes()
+    sidecars = [path.with_name(path.name + suffix) for suffix in ("-journal", "-wal")]
+    for file in sidecars:
+        file.write_bytes(b"")
+    result = build_snapshot(path, tmp_path / "out", allow_legacy_source=True)
+    assert result["counts"]["valid"] == 1
+    assert path.read_bytes() == before
+    assert all(file.read_bytes() == b"" for file in sidecars)
+
+
+def test_failure_status_survives_counts_and_cleanup_errors(tmp_path, monkeypatch):
+    from narrative_blueprint.corpus.snapshot import Admission, SnapshotStore
+    path = source(tmp_path, [record()])
+    failure = SnapshotRefused("synthetic_refusal")
+    def reject(*args):
+        raise failure
+    def broken_counts(*args):
+        raise sqlite3.DatabaseError("synthetic counts failure")
+    original_close = SnapshotStore.close
+    def broken_close(store):
+        original_close(store)
+        raise sqlite3.DatabaseError("synthetic cleanup failure")
+    monkeypatch.setattr(Admission, "accept", reject)
+    monkeypatch.setattr(SnapshotStore, "counts", broken_counts)
+    monkeypatch.setattr(SnapshotStore, "close", broken_close)
+    with pytest.raises(SnapshotRefused) as caught:
+        build_snapshot(path, tmp_path / "out", allow_legacy_source=True)
+    assert caught.value is failure
+    status = json.loads((tmp_path / "out/status.json").read_text())
+    assert status["status"] == "refused" and status["reason"] == "synthetic_refusal"
+    assert "counts" not in status
+    assert not (tmp_path / "out/snapshot.json").exists()
+    assert failure.__notes__ == ["Snapshot failure counts unavailable", "Snapshot cleanup also failed"]

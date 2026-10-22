@@ -190,9 +190,14 @@ def build_snapshot(source, output, *, limits=None, declared_space=None,
     except BaseException as exc:
         if store is not None:
             try:
-                status.setdefault("counts", store.counts())
-            finally:
+                if "counts" not in status:
+                    status["counts"] = store.counts()
+            except Exception:
+                exc.add_note("Snapshot failure counts unavailable")
+            try:
                 store.close()
+            except Exception:
+                exc.add_note("Snapshot cleanup also failed")
         status.update(status="refused" if isinstance(exc, SnapshotRefused) else
                       "interrupted" if isinstance(exc, (KeyboardInterrupt, SystemExit)) else "failed",
                       reason=getattr(exc, "reason", "storage_failure" if isinstance(exc, (OSError, sqlite3.Error)) else "snapshot_failure"),

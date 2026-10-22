@@ -22,9 +22,12 @@ nonempty strings. Leading zeros, whitespace within values, Unicode and newlines
 are preserved. CSV is UTF-8 (optional BOM), with JSON-array embeddings and unique
 column names. Parquet uses numeric list vectors. SQLite uses the existing
 `embeddings` table, including an `id` primary key and JSON-text embeddings.
-SQLite must be a quiescent, standalone database: active WAL files are refused.
-Checkpoint/close or export a WAL source before validation. Avoid modifying any
-source while it is read; size/mtime changes and newly active WAL files refuse
+SQLite must be a quiescent, standalone database: nonempty `-wal` and `-journal`
+sidecars are refused before and after reading. A hot rollback journal can contain
+recovery data for uncommitted changes that an immutable read would otherwise see.
+Checkpoint/recover and close the source outside this command, or export a
+recovered copy, before validation; this command never performs recovery.
+Avoid modifying any source while it is read; size/mtime changes also refuse
 publication. These checks are not a lock against a hostile concurrent writer.
 
 The structured recipe comes from `provider`, `model_name`, `model_revision`,
@@ -149,7 +152,7 @@ capacity are not qualified by this validation operation.
 
 Refusal categories include limit names (with demand, limit and adjustment
 guidance), `disk_free`, `source_missing`, `source_format`, `source_schema`,
-`invalid_utf8`, `malformed_csv`, `source_changed`, `sqlite_wal_active`,
+`invalid_utf8`, `malformed_csv`, `source_changed`, `sqlite_wal_active`, `sqlite_journal_active`,
 `sqlite_source`, `invalid_metadata`, `conflicting_metadata`, `mixed_space`,
 `mixed_dimension`, `ambiguous_uuid`, `mixed_occurrence_identity`,
 `invalid_occurrence_id`, `conflicting_occurrence`, `conflicting_attempt`,

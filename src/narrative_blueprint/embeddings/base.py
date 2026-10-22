@@ -51,6 +51,10 @@ class VectorModel(ABC):
             raise RuntimeError('Embedding storage has not been configured')
         self.storage.insert_many(data)
 
+    def _request_failed(self, count):
+        if hasattr(self.storage, 'fail_request'):
+            self.storage.fail_request(count)
+
     @abstractmethod
     def _safe_embed_request(self, uuids: list,
                             batch_data: list[str],

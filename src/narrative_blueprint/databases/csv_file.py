@@ -113,6 +113,11 @@ class CSVFileManager(Database):
     def get_documents(self) -> list:
         return self._read_documents()
 
+    def iter_documents(self, *, fields=None, limits=None):
+        from narrative_blueprint.corpus.contracts import FIELDS
+        from narrative_blueprint.corpus.sources import local_documents
+        return local_documents(self.output_path, fields=FIELDS if fields is None else fields, limits=limits)
+
     def test_access(self) -> bool:
         output_dir = os.path.dirname(os.path.abspath(self.output_path))
         return os.path.isdir(output_dir) and os.access(output_dir, os.W_OK)

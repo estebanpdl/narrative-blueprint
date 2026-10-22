@@ -97,3 +97,12 @@ class MongoDBManager(Database):
         :rtype: list
         '''
         return [doc for doc in self.collection.find({})]
+
+    def iter_documents(self, *, fields=None, limits=None, query=None):
+        from narrative_blueprint.corpus.contracts import FIELDS
+        from narrative_blueprint.corpus.columnar import mongo_documents
+        return mongo_documents(self.collection, fields=FIELDS if fields is None else fields,
+                               limits=limits, query=query)
+
+    def close(self):
+        self.client.close()

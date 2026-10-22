@@ -1,6 +1,7 @@
 """Shared dispatcher for console, module and source-checkout launchers."""
 
 import time
+from narrative_blueprint.corpus.contracts import SnapshotRefused
 
 from .analysis_options import EmbeddingInputError, validate_embeddings_args
 from .parser import create_main_parser
@@ -27,6 +28,6 @@ def main(argv=None, *, prog="nblue"):
             handler = handle_blueprint
         print(f"\n> Starting program at: {time.ctime()}\n")
         handler(args)
-    except EmbeddingInputError as exc:
+    except (EmbeddingInputError, SnapshotRefused) as exc:
         parser.error(str(exc))
     print(f"\n> Ending program at: {time.ctime()}")

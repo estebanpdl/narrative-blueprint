@@ -34,6 +34,11 @@ def create_embeddings_parser(subparsers):
     inputs = compute.add_argument_group("Input")
     inputs.add_argument("--input", "--narrative-path", dest="narrative_path", action=AliasValue,
                         metavar="FILE", help="Required CSV/XLSX/JSON with uuid and narrative")
+    inputs.add_argument("--max-input-bytes", type=int, default=256 * 1024**2,
+                        help="Whole-file generation input admission (default 268435456); not streaming")
+    inputs.add_argument("--max-input-records", type=int, default=1_000_000,
+                        help="Generation row cap after loading (default 1000000)")
+    inputs.add_argument("--generation-ledger", help="New SQLite outcome receipt; default unique file beside vector destination")
     provider = compute.add_argument_group("Provider")
     provider.add_argument("--model", choices=MODELS, default=None,
                           help="Compute default: text-embedding-3-small")
@@ -55,4 +60,6 @@ def create_embeddings_parser(subparsers):
     analyze.set_defaults(analysis_only=True)
     _analysis_output(analyze, diagnostic=True)
     add_analysis_options(analyze)
+    from .snapshot_options import add_snapshot_parser
+    add_snapshot_parser(modes)
     return parser

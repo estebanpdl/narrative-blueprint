@@ -32,6 +32,7 @@ The project is in active development. Generated labels and similarity groups are
 ### 📊 Intelligence Capabilities
 - **Labels from Your Prompt**: Request candidate topics, claims, or rhetorical descriptions using your chosen template
 - **Stored-Vector Diagnostics**: Inspect similarity groups in a small CSV, with explicit limits and documented legacy graph behavior
+- **Snapshot Validation**: Validate CSV, Parquet or SQLite vectors into an indexed disk-backed snapshot with occurrence counts, exclusions and generation receipts; see [snapshot validation](docs/snapshot-validation.md)
 
 ### 🔧 Technical Architecture
 - **Flexible Storage**: Save blueprints to MongoDB or JSON, and embeddings to MongoDB, CSV, Parquet, or SQLite

@@ -55,6 +55,8 @@ def read_source(source, limits):
     try:
         reader = csv.DictReader(io.StringIO(text, newline=""), strict=True)
         columns = reader.fieldnames or []
+        if "generation_id" in columns:
+            raise EmbeddingInputError("Managed generation output requires embeddings snapshot with --generation-ledger; the legacy diagnostic cannot certify its coverage")
         if not {"uuid", "text", "embedding"} <= set(columns):
             raise EmbeddingInputError("Source requires uuid, text and embedding columns")
         if len(columns) != len(set(columns)):

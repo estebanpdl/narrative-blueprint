@@ -100,7 +100,14 @@ def effective_limits(args):
 
 def validate_embeddings_args(args):
     """Reject contradictory options before any storage or provider setup."""
+    if args.get("snapshot_only"):
+        from .snapshot_options import validate_snapshot_args
+        validate_snapshot_args(args)
+        return
     if not args.get("analysis_only"):
+        for name in ("max_input_bytes", "max_input_records"):
+            if type(args.get(name, 1)) is not int or args.get(name, 1) <= 0:
+                raise EmbeddingInputError(f"--{name.replace('_', '-')} must be positive")
         diagnostic_options = ("analysis_source", "declared_space", "allow_legacy_source", *LIMITS)
         if any(args.get(name) is not None and args.get(name) is not False
                for name in diagnostic_options):

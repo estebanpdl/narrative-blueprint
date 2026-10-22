@@ -67,3 +67,7 @@ class Database(ABC):
     def finalize(self) -> None:
         '''Finalize pending writes for backends that require it.'''
         return
+
+    def iter_documents(self, *, fields=None, limits=None):
+        """Context-managed projected reader; unsupported stores fail explicitly."""
+        raise NotImplementedError('This storage backend has no bounded reader')

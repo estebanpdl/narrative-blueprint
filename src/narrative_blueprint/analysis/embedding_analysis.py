@@ -9,6 +9,8 @@ It uses embeddings to measure semantic similarity and detect communities.
 import os
 import csv
 import json
+from pathlib import Path
+from uuid import uuid4
 import pandas as pd
 import networkx as nx
 
@@ -104,12 +106,16 @@ class EmbeddingAnalysis:
         '''
         try:
             file_extension = os.path.splitext(path)[1].lower()
+            byte_limit = self.args.get('max_input_bytes', 256 * 1024**2)
+            if os.path.getsize(path) > byte_limit:
+                raise ValueError('Generation input exceeds --max-input-bytes; convert/select a smaller input')
 
             if file_extension == '.csv':
-                return pd.read_csv(path, encoding='utf-8', low_memory=False)
+                return pd.read_csv(path, encoding='utf-8', low_memory=False,
+                                   dtype={'uuid': str, 'narrative': str}, keep_default_na=False)
 
             elif file_extension in ['.xlsx', '.xls']:
-                return pd.read_excel(path)
+                return pd.read_excel(path, dtype={'uuid': str, 'narrative': str}, keep_default_na=False)
 
             elif file_extension == '.json':
                 with open(path, 'r', encoding='utf-8') as file:
@@ -380,24 +386,25 @@ class EmbeddingAnalysis:
         Compute/store vectors, then optionally export and analyze the chosen store.
         '''
         narratives = self.narratives['narrative'].tolist()
-        uuids = self.narratives['uuid'].tolist()
+        uuids = [str(value) for value in self.narratives['uuid'].tolist()]
+        if len(uuids) > self.args.get('max_input_records', 1_000_000):
+            raise ValueError('Generation input exceeds --max-input-records')
 
-        # compute embeddings
-        try:
-            self.vector_model.compute_embeddings(
-                uuids=uuids,
-                data=narratives,
-                storage=self.storage
-            )
-        finally:
-            self.storage.finalize()
+        from narrative_blueprint.embeddings.ledger import run_generation
+        destination = self.args.get('embeddings_output') or getattr(self.storage, 'output_path', None)
+        ledger_path = self.args.get('generation_ledger') or str(
+            Path(destination or self.output_path or self.args['narrative_path']).with_name(
+                f'generation-{uuid4()}.sqlite'))
+        self.generation_ledger = ledger_path
+        print(f'Generation outcome ledger: {ledger_path}')
+        generation_id = run_generation(self.vector_model, self.storage, uuids, narratives, ledger_path)
 
         if self.skip_analysis:
             print('')
             print('Analysis skipped. Embeddings have been stored.')
             return
 
-        documents = self.storage.get_documents()
+        documents = [row for row in self.storage.get_documents() if row.get('generation_id') == generation_id]
 
         # writing embeddings to projector
         print ('')

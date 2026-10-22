@@ -55,6 +55,10 @@ def handle_embeddings(args: dict) -> None:
     from narrative_blueprint.cli.analysis_options import validate_embeddings_args
 
     validate_embeddings_args(args)
+    if args.get('snapshot_only'):
+        from narrative_blueprint.cli.snapshot_options import run_snapshot
+        run_snapshot(args)
+        return
     if args.get('analysis_only'):
         from narrative_blueprint.analysis.diagnostic import run_diagnostic
         run_diagnostic(args)
@@ -84,8 +88,6 @@ def handle_embeddings(args: dict) -> None:
             '--gemini-task-type can only be used with gemini-embedding-001'
         )
 
-    storage = _get_embedding_storage(args)
-
     # select and instantiate embedding model
     if provider == 'Gemini':
         from narrative_blueprint.embeddings import GeminiEmbeddingModel as model_class
@@ -98,13 +100,21 @@ def handle_embeddings(args: dict) -> None:
         )
     vector_model = model_class(**model_options)
 
-    # embedding analysis
-    embedding_analysis = EmbeddingAnalysis(
-        vector_model=vector_model,
-        storage=storage,
-        args=args
-    )
-
-    # run embedding analysis
-    print(f'Computing embeddings using {provider} {model}...')
-    embedding_analysis.run_embedding_analysis()
+    storage = _get_embedding_storage(args)
+    try:
+        embedding_analysis = EmbeddingAnalysis(
+            vector_model=vector_model, storage=storage, args=args)
+        print(f'Computing embeddings using {provider} {model}...')
+        embedding_analysis.run_embedding_analysis()
+    except BaseException as exc:
+        cleanup = getattr(storage, 'abort', None) or getattr(storage, 'close', None)
+        if cleanup:
+            try:
+                cleanup()
+            except Exception:
+                exc.add_note('Storage cleanup also failed')
+        raise
+    else:
+        close = getattr(storage, 'close', None)
+        if close:
+            close()

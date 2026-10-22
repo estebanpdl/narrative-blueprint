@@ -23,6 +23,7 @@ class GeminiEmbeddingModel(VectorModel):
     '''
     GeminiEmbeddingModel class
     '''
+    provider = 'Google'
     # Gemini model limits
     MODEL_LIMITS = {
         'gemini-embedding-001': {
@@ -91,8 +92,9 @@ class GeminiEmbeddingModel(VectorModel):
         :param retry_max: The maximum number of retries.
         :type retry_max: int
         '''
-        retry_count = 0
-        while retry_count < retry_max:
+        if not batch_data:
+            return
+        for attempt in range(retry_max):
             try:
                 response = self.client.models.embed_content(
                     model=f'models/{self.model_name}',
@@ -102,36 +104,24 @@ class GeminiEmbeddingModel(VectorModel):
                     )
                 )
 
-                # build data object
-                data = [
-                    {
-                        'uuid': uuids[i],
-                        'text': batch_data[i],
-                        'embedding': response.embeddings[i].values,
-                        'model_name': self.model_name,
-                        'provider': 'Google',
-                        'task_type': self.task_type
-                    }
-                    for i in range(len(uuids))
-                ]
-
-                self._store_embeddings(data)
-
-                return
-            except Exception as e:
-                self._log_write(f'Failed to compute embeddings for request {request_id}')
-                self._log_write(str(e))
-                self._log_write('')
-
-                # retry
-                retry_count += 1
-                wait_time = 60
-                time.sleep(wait_time)
-
-        # exceeded max retries
-        if retry_count >= retry_max:
-            self._log_write(f'Failed to compute embeddings for request {request_id}. Cancelled!')
-            return
+                break
+            except Exception:
+                if attempt + 1 < retry_max:
+                    time.sleep(60)
+        else:
+            self._request_failed(len(uuids))
+            raise RuntimeError('Embedding provider retries exhausted')
+        try:
+            if len(response.embeddings) != len(uuids):
+                raise ValueError('Embedding response count mismatch')
+            data = [{'uuid': uuid, 'text': batch_data[i],
+                     'embedding': response.embeddings[i].values,
+                     'model_name': self.model_name, 'provider': self.provider,
+                     'task_type': self.task_type} for i, uuid in enumerate(uuids)]
+        except Exception:
+            self._request_failed(len(uuids))
+            raise
+        self._store_embeddings(data)
 
     def _process_batch(self,
                        uuids: list = None,

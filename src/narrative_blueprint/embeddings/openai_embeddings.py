@@ -22,6 +22,7 @@ class OpenAIEmbeddingModel(VectorModel):
     '''
     OpenAIEmbeddingModel class
     '''
+    provider = 'OpenAI'
     # OpenAI model limits
     MODEL_LIMITS = {
         'text-embedding-ada-002': {
@@ -105,38 +106,39 @@ class OpenAIEmbeddingModel(VectorModel):
         :param retry_max: The maximum number of retries.
         :type retry_max: int
         '''
-        retry_count = 0
-        while retry_count < retry_max:
+        if not batch_data:
+            return
+        for attempt in range(retry_max):
             try:
                 response = self.client.embeddings.create(
                     model=self.model_name,
                     input=batch_data
                 )
-
-                # build data object
-                data = [
-                    {
-                        'uuid': uuids[i],
-                        'text': batch_data[i],
-                        'embedding': response.data[i].embedding,
-                        'model_name': self.model_name,
-                        'provider': 'OpenAI'
-                    }
-                    for i in range(len(uuids))
-                ]
-
-                self._store_embeddings(data)
-
-                return
-            except RateLimitError as e:
-                retry_count += 1
-                wait_time = 60
-                time.sleep(wait_time)
-
-        # exceeded max retries
-        if retry_count >= retry_max:
-            self._log_write(f'Failed to compute embeddings for request {request_id}')
-            raise RuntimeError('Failed to compute embeddings.')
+                break
+            except RateLimitError:
+                if attempt + 1 < retry_max:
+                    time.sleep(60)
+            except Exception:
+                self._request_failed(len(uuids))
+                raise
+        else:
+            self._request_failed(len(uuids))
+            raise RuntimeError('Embedding provider retries exhausted')
+        # Parsing and persistence are outside the retry loop: a received response
+        # must never be regenerated because validation or storage failed.
+        try:
+            if len(response.data) != len(uuids):
+                raise ValueError('Embedding response count mismatch')
+            indexed = {item.index: item.embedding for item in response.data}
+            if set(indexed) != set(range(len(uuids))):
+                raise ValueError('Embedding response indices mismatch')
+            data = [{'uuid': uuid, 'text': batch_data[i], 'embedding': indexed[i],
+                     'model_name': self.model_name, 'provider': self.provider}
+                    for i, uuid in enumerate(uuids)]
+        except Exception:
+            self._request_failed(len(uuids))
+            raise
+        self._store_embeddings(data)
 
     def _process_batch(self,
                        uuids: list = None,

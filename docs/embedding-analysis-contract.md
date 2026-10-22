@@ -5,7 +5,10 @@ Contract version: `occurrence-threshold-1`.
 This contract separates the implemented small-input diagnostic adapter from
 the corrected analysis format specified below. The corrected graph, immutable
 disk-backed snapshot, generation ledger and complete CSV publication are not
-implemented by the diagnostic command.
+implemented by the diagnostic command. The separate
+[snapshot operation](snapshot-validation.md) now implements disk-backed validation
+and a generation receipt with its own versioned identity/selection schema.
+Corrected graphs and graph-table publication remain specified below.
 
 ## Implemented diagnostic entry
 
@@ -19,8 +22,9 @@ diagnostic source format. MongoDB, SQLite, Parquet and generation input formats
 are not sources for this adapter. No provider module, provider constructor,
 credential loader, `.env` file or network connection is needed. Existing
 compute-plus-analysis and `--skip-analysis` compute-only behavior remain
-available, with the same storage formats and default model. Those paths retain
-their existing resource and correctness limitations.
+available, with the same storage formats and default model. Compute now requires
+a complete outcome receipt before downstream work and selects the current
+generation. Those paths retain their existing graph resource/correctness limitations.
 
 Generation options (`--input`/`--narrative-path`, `--model`, `--gemini-task-type`,
 `--vectors-file`/`--embeddings-output`, MongoDB options and `--skip-analysis`)
@@ -65,6 +69,8 @@ Legacy CSV has no expected-input manifest. `--allow-legacy-source` explicitly
 accepts unknown original generation completeness and provenance. Available
 rows never imply successful full generation. There is no implicit selection
 from a previous generation destination, and no provider activity to fill gaps.
+CSV containing `generation_id` is refused by this diagnostic: use the snapshot
+command with its generation receipt to validate known coverage instead.
 
 ## Diagnostic admission and outputs
 

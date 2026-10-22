@@ -1,13 +1,16 @@
 # nblue embeddings compute
 
 Generate vectors and store them. By default, computation is followed by the
-existing whole-store projector/similarity/Excel workflow. `--skip-analysis`
+legacy projector/similarity/Excel workflow over the current generation. `--skip-analysis`
 stops after vector storage. This command can make paid provider requests and
 does not run blueprint generation.
 
 | Group | Option | Default / behavior |
 |---|---|---|
 | Input | `--input FILE` (alias `--narrative-path`) | Required CSV/XLSX/JSON with `uuid` and `narrative` |
+| Input | `--max-input-bytes N` | 268435456; whole-file admission before loading |
+| Input | `--max-input-records N` | 1000000; row cap after loading |
+| Receipt | `--generation-ledger FILE` | New SQLite receipt; default unique file beside vector destination |
 | Provider | `--model MODEL` | `text-embedding-3-small` |
 | Provider | `--gemini-task-type TYPE` | Gemini only; `SEMANTIC_SIMILARITY`; case normalized to uppercase |
 | Vector destination | `--vectors-file FILE` (aliases `--embeddings-output`, `--embedding-output`) | Local `.csv`, `.parquet`, `.db`, `.sqlite`, `.sqlite3`; no default |
@@ -41,10 +44,12 @@ nblue embeddings compute --input text.csv --vectors-file vectors.csv --analysis-
 python main.py embeddings --narrative-path text.csv --embeddings-output vectors.csv --output results
 ```
 
-The combined path reads the whole chosen store, including older records; it
-is not a scalable or provenance-selected workflow. Its legacy graph
+The combined path still reads the whole chosen store through its compatibility
+API, but retains only current-generation rows for analysis after a complete
+outcome receipt. This is not a scalable graph workflow. Its legacy graph
 can lose cross-block pairs and isolates, collapse duplicate texts and count
 bridge edges in multiple communities. Projector and vector outputs may exist
-before graph failure. The command does not add a spend cap, snapshot
-selection or an enforced memory ceiling; provider retry behavior remains in the
-existing adapters.
+before graph failure. The command does not add a spend cap or an enforced memory
+ceiling. Provider exhaustion and storage errors now propagate; storage failures
+never retry a successful provider response. See [snapshot validation](snapshot-validation.md)
+for receipt states, partial generation, input-memory limits and offline validation.

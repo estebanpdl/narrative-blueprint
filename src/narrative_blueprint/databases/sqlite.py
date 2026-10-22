@@ -117,5 +117,10 @@ class SQLiteManager(Database):
         except sqlite3.Error:
             return False
 
+    def iter_documents(self, *, fields=None, limits=None):
+        from narrative_blueprint.corpus.contracts import FIELDS
+        from narrative_blueprint.corpus.sources import local_documents
+        return local_documents(self.output_path, fields=FIELDS if fields is None else fields, limits=limits)
+
     def close(self) -> None:
         self.connection.close()

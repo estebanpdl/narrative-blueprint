@@ -152,3 +152,21 @@ class ParquetFileManager(Database):
 
     def close(self) -> None:
         self.finalize()
+
+    def abort(self) -> None:
+        """Discard unpublished staging without retrying a failed replacement."""
+        try:
+            if self._writer is not None:
+                self._writer.close()
+        finally:
+            self._writer = None
+            if self._temporary_path is not None:
+                os.remove(self._temporary_path)
+                self._temporary_path = None
+
+    def iter_documents(self, *, fields=None, limits=None):
+        from narrative_blueprint.corpus.contracts import FIELDS
+        from narrative_blueprint.corpus.sources import local_documents
+        if self._writer is not None or self._temporary_path is not None:
+            raise RuntimeError('Finalize pending writes explicitly before reading')
+        return local_documents(self.output_path, fields=FIELDS if fields is None else fields, limits=limits)

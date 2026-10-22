@@ -33,6 +33,7 @@ The project is in active development. Generated labels and similarity groups are
 - **Labels from Your Prompt**: Request candidate topics, claims, or rhetorical descriptions using your chosen template
 - **Stored-Vector Diagnostics**: Inspect similarity groups in a small CSV, with explicit limits and documented legacy graph behavior
 - **Snapshot Validation**: Validate CSV, Parquet or SQLite vectors into an indexed disk-backed snapshot with occurrence counts, exclusions and generation receipts; see [snapshot validation](docs/snapshot-validation.md)
+- **Global Similarity Analysis**: Analyze validated snapshots with exhaustive tiled threshold comparisons, all occurrence nodes, seeded Louvain, separate bridge statistics and verified CSV publication; see [global similarity](docs/global-similarity.md)
 
 ### 🔧 Technical Architecture
 - **Flexible Storage**: Save blueprints to MongoDB or JSON, and embeddings to MongoDB, CSV, Parquet, or SQLite
@@ -213,6 +214,13 @@ python main.py blueprint \
 ## Embeddings
 
 ### Analyze stored vectors without a provider
+
+For corrected analysis, follow [global similarity analysis](docs/global-similarity.md):
+build a validated snapshot, then run `nblue embeddings analyze --snapshot-dir SNAPSHOT --analysis-dir RESULTS`.
+This route preserves duplicates and isolates and checks configurable graph/output
+budgets. [Output interpretation](docs/analysis-outputs.md) explains the completion
+manifest, assignments and bridge statistics. The older CSV diagnostic below is
+retained for compatibility.
 
 Start with the [analysis-only user guide](docs/analysis-only.md) for flag examples,
 CSV requirements, output interpretation, and creating a small subset of a larger CSV.

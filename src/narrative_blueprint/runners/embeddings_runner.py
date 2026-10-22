@@ -60,6 +60,10 @@ def handle_embeddings(args: dict) -> None:
         run_snapshot(args)
         return
     if args.get('analysis_only'):
+        if args.get('snapshot_dir'):
+            from narrative_blueprint.cli.graph_options import run_graph
+            run_graph(args)
+            return
         from narrative_blueprint.analysis.diagnostic import run_diagnostic
         run_diagnostic(args)
         return

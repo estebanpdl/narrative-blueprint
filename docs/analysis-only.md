@@ -1,5 +1,9 @@
 # Analysis-only diagnostic
 
+For corrected global edges, isolates and community statistics, use
+[global similarity analysis](global-similarity.md). This page documents the
+retained CSV compatibility diagnostic.
+
 Use `nblue embeddings analyze` to inspect a **small CSV of existing vectors**
 without generating embeddings, loading credentials, or contacting a provider.
 It validates the selected input, runs the uncorrected legacy similarity graph,

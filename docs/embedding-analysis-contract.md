@@ -8,7 +8,9 @@ disk-backed snapshot, generation ledger and complete CSV publication are not
 implemented by the diagnostic command. The separate
 [snapshot operation](snapshot-validation.md) now implements disk-backed validation
 and a generation receipt with its own versioned identity/selection schema.
-Corrected graphs and graph-table publication remain specified below.
+The separate [corrected snapshot analysis](global-similarity.md) now implements
+the global graph and complete CSV publication, with its numeric policy,
+[output schemas](analysis-outputs.md) and [configurable admission](analysis-limits.md).
 
 ## Implemented diagnostic entry
 
@@ -126,16 +128,17 @@ that full generation or corrected graph analysis succeeded. JSON preserves
 Unicode/newlines and literal text without spreadsheet formula evaluation.
 Projector and Excel views are intentionally absent from this adapter.
 
-## Corrected occurrence analysis specification
+## Corrected occurrence analysis contract
 
-The following behavior is specified for a different method version; it is
-**not** claimed by `legacy-two-pass-1`.
+The following behavior is implemented by `exhaustive-cosine-louvain-1` over a
+`corpus-snapshot-1` input; it is **not** claimed by `legacy-two-pass-1`.
 
 - Selection identifies one immutable source snapshot and one embedding recipe
   (provider, model, revision where known, task type, dimension and preprocessing).
   Unknown legacy fields remain unknown and declared-space imports remain
   declarations. Deterministic source-relative IDs and exact-text hashes follow
-  the identity rules above. Cross-source merging requires a separate mapping.
+  the [snapshot identity rules](snapshot-validation.md). Cross-source merging
+  requires a separate mapping.
 - Every valid occurrence is a node, including duplicates and isolates.
   Repeated embedding attempts for one occurrence/recipe do not add nodes.
   Conflicting results refuse selection until resolved by an explicit policy.
@@ -146,11 +149,13 @@ The following behavior is specified for a different method version; it is
   Legacy unknown coverage cannot be upgraded to complete.
 - Normalize valid vectors to float32 in bounded batches; enumerate all global
   `i < j` pairs exactly once using bounded tiles. A threshold is positive and
-  at most one. Retain a computed float32 cosine when `score >= threshold`,
-  without epsilon expansion. Compare small-input scores with a float64 oracle
-  using absolute tolerance `1e-6`; decisions within `1e-6` of the threshold
-  are numeric-boundary cases and must be reported/tested rather than described
-  as bitwise-equivalent to float64. No nearest-neighbor substitution is allowed.
+  at most one. Compute float64 renormalized dot products from snapshot float32
+  vectors and retain clipped cosine when `score >= threshold`, without epsilon
+  expansion. The configurable absolute tolerance defaults to `1e-7`; comparisons
+  within that distance of the threshold are counted as numeric-boundary cases.
+  Small-input dense float64 oracle tests check score tolerance and exact pair
+  sets away from boundaries. No bitwise-original-float64 equivalence or
+  nearest-neighbor substitution is claimed.
 - Seeded, weighted NetworkX Louvain uses seed 42 and resolution 1. Record
   package version, ordered IDs and parameters; numeric community labels are
   run-local. Compare memberships using occurrence IDs. Empty/no-edge graphs

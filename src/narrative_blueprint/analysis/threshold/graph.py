@@ -22,7 +22,7 @@ def read_tile(stream, start, stop, dimension):
 def discover_edges(scratch, nodes, dimension, parameters):
     budget = scratch.budget
     rows = budget.admit(nodes, dimension)
-    count = comparisons = 0
+    count = comparisons = boundary_pairs = 0
     started = time.perf_counter()
     with scratch.vectors.open("rb") as stream:
         for first in range(0, nodes, rows):
@@ -38,7 +38,8 @@ def discover_edges(scratch, nodes, dimension, parameters):
                     for b in range(begin, len(right)):
                         comparisons += 1
                         weight = float(scores[a, b])
-                        if weight > 0 and weight + parameters.tolerance >= parameters.threshold:
+                        boundary_pairs += abs(weight - parameters.threshold) <= parameters.tolerance
+                        if weight >= parameters.threshold:
                             accepted.append((first + a, second + b, weight))
                     budget.admit_graph(nodes, count + len(accepted))
                     scratch.disk(65536 + 256 * len(accepted))
@@ -51,7 +52,7 @@ def discover_edges(scratch, nodes, dimension, parameters):
     if comparisons != nodes * (nodes - 1) // 2:
         raise AnalysisRefused("comparison_count")
     scratch.disk()
-    return {"nodes": nodes, "edges": count, "comparisons": comparisons,
+    return {"nodes": nodes, "edges": count, "comparisons": comparisons, "boundary_pairs": boundary_pairs,
             "tile_rows": rows, "comparison_seconds": time.perf_counter() - started}
 
 

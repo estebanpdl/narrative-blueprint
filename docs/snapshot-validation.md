@@ -212,3 +212,9 @@ The injected Mongo reader has fake-contract coverage for projection, filter,
 stable `_id` ordering, batch hints and cursor closure. Live Mongo snapshot
 consistency, driver/BSON buffering and scale are unqualified; the snapshot CLI
 accepts local sources only.
+
+## Analyze a completed snapshot
+
+Snapshots can now feed [corrected global similarity analysis](global-similarity.md)
+through `embeddings analyze --snapshot-dir SNAPSHOT --analysis-dir RESULTS`.
+This keeps snapshot validation and graph computation independently runnable.

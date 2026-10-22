@@ -111,8 +111,11 @@ class Scratch:
         count = 0
         with self.vectors.open("xb") as stream:
             rows = snapshot.execute('''SELECT occurrence_id,source_uuid,text_hash,text,
-                source_ordinal,vector FROM records WHERE status='valid' ORDER BY occurrence_id''')
-            for node, (occurrence, uuid, text_hash, text, ordinal, blob) in enumerate(rows):
+                source_ordinal,vector,status FROM records ORDER BY occurrence_id''')
+            for occurrence, uuid, text_hash, text, ordinal, blob, status in rows:
+                if status != "valid":
+                    continue
+                node = count
                 self.disk(len(blob) + 8 * sum(len(v.encode("utf-8")) for v in (occurrence, uuid, text_hash, text)) + 16384)
                 if len(blob) != d * 4:
                     raise AnalysisRefused("snapshot_vector")

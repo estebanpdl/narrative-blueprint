@@ -58,7 +58,7 @@ def test_tiled_matches_independent_dense_oracle(tmp_path, dimension, rows):
     dense = normalized @ normalized.T
     expected = {(f"occurrence-{i:04}", f"occurrence-{j:04}"): dense[i, j]
                 for i in range(19) for j in range(i + 1, 19)
-                if dense[i, j] + parameters.tolerance >= parameters.threshold}
+                if dense[i, j] >= parameters.threshold}
     assert {(a, b) for a, b, _ in edges} == expected.keys()
     for a, b, weight in edges:
         assert abs(weight - expected[a, b]) < 1e-7
@@ -77,9 +77,10 @@ def test_cross_block_only_match_duplicates_and_isolate(tmp_path):
 def test_boundary_tolerance_and_positive_edges(tmp_path):
     cosines = [0.6 - 2e-6, 0.6 - 3e-7, 0.6, 0.6 + 2e-6, 0.0, -0.1]
     vectors = [[1., 0.]] + [[value, (1 - value**2)**0.5] for value in cosines]
-    _, edges, _ = analyze_core(tmp_path, vectors, parameters=GraphParameters(threshold=0.6, tolerance=1e-6))
+    result, edges, _ = analyze_core(tmp_path, vectors, parameters=GraphParameters(threshold=0.6, tolerance=1e-6))
     linked = {b for a, b, _ in edges if a == "occurrence-0000"}
-    assert linked == {"occurrence-0002", "occurrence-0003", "occurrence-0004"}
+    assert linked == {"occurrence-0003", "occurrence-0004"}
+    assert result["boundary_pairs"] >= 2
     assert all(weight > 0 for _, _, weight in edges)
 
 

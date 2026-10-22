@@ -55,6 +55,12 @@ Optional --declared-space LABEL records your unverified note; omitted means unkn
 --allow-legacy-source is required, even when model metadata is present.
 Small CSV inputs only: hard ceilings 16 MiB source and 500 records; other limits also apply.
 For input format, outputs, and a CSV-aware subset recipe, see docs/analysis-only.md.
+
+Corrected global analysis of a validated snapshot:
+  nblue embeddings analyze --snapshot-dir results/snapshot-01 --analysis-dir results/analysis
+This snapshot route replaces the legacy graph for full analysis. It uses configurable
+graph limits (default --max-working-bytes 2147483648), without the CSV diagnostic ceilings.
+See docs/global-similarity.md and docs/analysis-limits.md.
 '''
 
 
@@ -104,6 +110,11 @@ def validate_embeddings_args(args):
         from .snapshot_options import validate_snapshot_args
         validate_snapshot_args(args)
         return
+    from .graph_options import graph_settings, reject_graph_options_without_snapshot
+    if args.get("analysis_only") and args.get("snapshot_dir"):
+        graph_settings(args)
+        return
+    reject_graph_options_without_snapshot(args)
     if not args.get("analysis_only"):
         for name in ("max_input_bytes", "max_input_records"):
             if type(args.get(name, 1)) is not int or args.get(name, 1) <= 0:

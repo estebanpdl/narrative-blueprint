@@ -29,7 +29,7 @@ The project is in active development. Generated labels and similarity groups are
 - **Multi-Provider LLM Support**: Works with OpenAI GPT and Google Gemini models
 - **Multilingual Prompts**: Supply prompt instructions in English, Spanish, or another language; analytical quality needs separate evaluation for each language and task
 
-### 📊 Intelligence Capabilities
+### 📊 Research Capabilities
 - **Labels from Your Prompt**: Request candidate topics, claims, or rhetorical descriptions using your chosen template
 - **Stored-Vector Diagnostics**: Inspect similarity groups in a small CSV, with explicit limits and documented legacy graph behavior
 - **Snapshot Validation**: Validate CSV, Parquet or SQLite vectors into an indexed disk-backed snapshot with occurrence counts, exclusions and generation receipts; see [snapshot validation](docs/snapshot-validation.md)
@@ -78,6 +78,8 @@ cp config/.env.template config/.env
 ```
 
 See the [documentation index](docs/index.md) and [provider-free quick start](docs/quick-start.md).
+The [local workflow scope](docs/local-workflow.md) collects the offline commands,
+qualification evidence, compatibility notes and deferred capabilities.
 The canonical commands are `nblue blueprint`, `nblue embeddings compute`, and
 `nblue embeddings analyze`. The source launcher `python main.py` and compatibility aliases
 remain supported through 1.x; see the [migration map](docs/cli-compatibility.md).
@@ -136,11 +138,11 @@ Analysis instructions with ${narrative} placeholder...
 ```
 
 ### Available Templates
-- **`prompt_examples/narrative_blueprint_EN.toml`**: English disinformation analysis
-- **`prompt_examples/narrative_blueprint_ES.toml`**: Spanish disinformation analysis
+- **`prompt_examples/narrative_blueprint_EN.toml`**: English narrative and communication-pattern analysis
+- **`prompt_examples/narrative_blueprint_ES.toml`**: Spanish narrative and communication-pattern analysis
 - **Create your own**: Choose instructions and output fields suited to your evidence and research question
 
-These example prompts assume a suspected disinformation context and request inferred tactics, audience, and intent. They do not test that assumption or verify a campaign. Review the instructions before use; adapting them changes the analysis. Evaluate each language separately before comparing outputs.
+These examples help researchers describe topics, framing, claims and observable communication patterns in text. They do not assume a campaign or hidden intent. The `communication_patterns` field is provisional pending methodology review; it describes textual features, not verified author motives. Review the instructions before use and evaluate each language separately before comparing outputs. See [template compatibility](docs/blueprint.md#template-compatibility) before reusing an existing result destination.
 
 ### Custom Template Development
 You can create domain-specific analysis by:
@@ -354,20 +356,20 @@ Blueprint fields depend on the chosen prompt. The following abbreviated, invente
 {
   "uuid": "narrative-identifier",
   "content_topics": {
-    "government": 1,
+    "government": 0,
     "military": 0,
-    "elections": 1,
-    "conspiracy": 1,
-    "other": "Climate change discussion"
+    "elections": 0,
+    "environment": 1,
+    "other": "Community gardening"
   },
-  "disinformation_tactic": ["fear-mongering", "false dichotomy"],
-  "target_audience": ["elderly voters", "rural communities"],
-  "intent": "Influence voter behavior through manufactured controversy",
-  "calls_to_action": ["Vote against incumbent", "Share this message"],
-  "key_actors_entities": ["Political Candidate X", "News Organization Y"],
+  "communication_patterns": ["Comparison of planting methods", "Invitation to participate"],
+  "target_audience": ["Residents explicitly addressed in the notice"],
+  "intent": "The notice states that it invites residents to a gardening workshop.",
+  "calls_to_action": ["Register for the workshop"],
+  "key_actors_entities": ["Community Garden Association"],
   "key_claims": [
-    "Government is hiding climate data",
-    "Opposition candidate supports dangerous policies"
+    "The workshop will compare two planting methods",
+    "Registration is open to local residents"
   ]
 }
 ```

@@ -7,6 +7,7 @@ dependencies are installed.
 
 | Task | Reference |
 |---|---|
+| Reproduce the local workflow and review delivered scope and deferrals | [Local workflow scope](local-workflow.md) |
 | Generate structured blueprints using a prompt and provider | [blueprint](blueprint.md) |
 | Generate/store vectors, optionally followed by legacy analysis | [embeddings compute](embeddings-compute.md) |
 | Diagnose a small CSV of existing vectors without a provider | [embeddings analyze](embeddings-analyze.md) |

@@ -19,7 +19,7 @@
 
 <br>
 
-Narrative Blueprint applies user-supplied TOML prompts to text records with OpenAI or Google Gemini models and stores the returned JSON documents. Separate commands compute embeddings through a provider and inspect a small CSV of existing vectors locally.
+Narrative Blueprint helps researchers describe narratives, framing, and observable text and communication patterns. It applies user-supplied TOML prompts to text records with OpenAI or Google Gemini models and stores the returned JSON documents. Separate commands compute embeddings through a provider, validate stored vectors into a local snapshot, and analyze occurrence similarities without a provider. A small CSV diagnostic remains available for compatibility.
 
 The project is in active development. Generated labels and similarity groups are material for human review; they do not establish truth, intent, coordination, or how common a view is in a population. See the [documentation index](docs/index.md) for current command behavior and limitations.
 
@@ -46,7 +46,7 @@ The project is in active development. Generated labels and similarity groups are
 ### Content Review
 - **Media and Public Discourse**: Organize model-generated topic or claim descriptions for review against the source text
 - **Research and Monitoring**: Apply a consistent prompt to selected records, then assess the outputs with a documented method
-- **Similarity Exploration**: Inspect related stored texts within the diagnostic limits
+- **Similarity Exploration**: Review stored-text relationships through a validated snapshot graph, with explicit resource limits and separate counts for repeated texts and occurrences
 
 Campaign attribution, cross-platform spread, actor intent, and policy impact require evidence and analysis beyond these outputs.
 
@@ -80,8 +80,8 @@ cp config/.env.template config/.env
 See the [documentation index](docs/index.md) and [provider-free quick start](docs/quick-start.md).
 The [local workflow scope](docs/local-workflow.md) collects the offline commands,
 qualification evidence, compatibility notes and deferred capabilities.
-The canonical commands are `nblue blueprint`, `nblue embeddings compute`, and
-`nblue embeddings analyze`. The source launcher `python main.py` and compatibility aliases
+The canonical commands are `nblue blueprint`, `nblue embeddings compute`,
+`nblue embeddings snapshot`, and `nblue embeddings analyze`. The source launcher `python main.py` and compatibility aliases
 remain supported through 1.x; see the [migration map](docs/cli-compatibility.md).
 Source-only clone use requires `python -m pip install -r requirements.txt`.
 The package is installed from the checkout; these instructions do not imply a

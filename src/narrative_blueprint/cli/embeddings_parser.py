@@ -16,7 +16,8 @@ def _analysis_output(parser, diagnostic=False):
     group = parser.add_argument_group("Analysis output")
     group.add_argument("--analysis-dir", "-o", "--output", dest="output", action=AliasValue,
                        metavar="DIRECTORY", help=(
-                           "Required new directory for diagnostic JSON; no default" if diagnostic else
+                           "Required analysis directory; snapshot runs create subdirectories; "
+                           "the CSV diagnostic requires a new directory; no default" if diagnostic else
                            "Analysis directory; required unless --skip-analysis; no default"))
     group.add_argument("--threshold", type=float, default=0.75, metavar="SCORE",
                        help="Cosine threshold (default: 0.75); analyze requires finite (0, 1]")

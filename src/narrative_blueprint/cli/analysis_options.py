@@ -45,7 +45,7 @@ class DiagnosticArgumentParser(ArgumentParser):
 
 
 VALUE_HINTS["--source"] = 'expects a local CSV path; example: --source subset.csv'
-VALUE_HINTS["--analysis-dir"] = 'expects a new directory path; example: --analysis-dir results/diagnostic-01'
+VALUE_HINTS["--analysis-dir"] = 'expects an analysis directory path; example: --analysis-dir results/analysis-01'
 
 
 ANALYSIS_EPILOG = '''Analysis-only example (no provider credentials needed):
@@ -67,14 +67,16 @@ See docs/global-similarity.md and docs/analysis-limits.md.
 def add_analysis_options(parser):
     from .compatibility import AliasValue
 
-    inputs = parser.add_argument_group("Input")
+    inputs = parser.add_argument_group("Legacy CSV diagnostic input (use --snapshot-dir for corrected analysis)")
     inputs.add_argument("--source", "--analysis-source", dest="analysis_source", action=AliasValue,
-                        metavar="CSV", help="Required local UTF-8 CSV (uuid,text,embedding); no default")
-    group = parser.add_argument_group("Provenance")
+                        metavar="CSV", help="Required for the CSV diagnostic; conflicts with --snapshot-dir; "
+                        "local UTF-8 CSV (uuid,text,embedding); no default")
+    group = parser.add_argument_group("Legacy CSV diagnostic provenance")
     group.add_argument("--declared-space", metavar="LABEL",
                        help="Optional unverified note; default unknown/null; " + VALUE_HINTS["--declared-space"])
     group.add_argument("--allow-legacy-source", action="store_true",
-                       help=("Required for analyze (default: off; no value). Legacy CSV has no "
+                       help=("Required for the CSV diagnostic, not used with --snapshot-dir "
+                             "(default: off; no value). Legacy CSV has no "
                              "expected-input manifest: acknowledge unknown generation completeness and "
                              "unverified provenance, even when model metadata is present"))
     meanings = {
@@ -84,12 +86,14 @@ def add_analysis_options(parser):
         "max_pairs": ("N", "Maximum possible pairs N*(N-1)/2, before threshold filtering"),
         "max_working_bytes": ("BYTES", "Maximum estimated working bytes (default 64 MiB, ceiling 256 MiB); not an RSS cap"),
     }
-    group = parser.add_argument_group("Limits")
+    group = parser.add_argument_group("Legacy CSV diagnostic limits (working allowance also applies to snapshots)")
     for name, (default, ceiling) in LIMITS.items():
         metavar, meaning = meanings[name]
         group.add_argument(
             "--" + name.replace("_", "-"), type=int, default=None, metavar=metavar,
-            help=f"{meaning}; positive integer, default {default}, hard ceiling {ceiling}",
+            help=(f"CSV diagnostic: {meaning}; positive integer, default {default}, hard ceiling {ceiling}."
+                  + (" Snapshot analysis: default 2147483648 (2 GiB), no fixed ceiling."
+                     if name == "max_working_bytes" else "")),
         )
 
 

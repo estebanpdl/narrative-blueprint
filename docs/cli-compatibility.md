@@ -34,7 +34,10 @@ are refused. Analysis-specific flags do not configure generation.
 absent note is null, an explicit blank is refused, and supplied text remains
 unverified. It does not override source metadata or change computation. The
 required `--allow-legacy-source` acknowledgement and metadata consistency checks
-remain. There is no automatic recipe derivation or provenance verification.
+remain. This CSV diagnostic does not derive a structured recipe or verify
+provenance. The separate [snapshot route](snapshot-validation.md) derives reported
+recipe metadata and validates generation receipts; it still cannot establish
+unknown legacy generation coverage.
 
 Python imports now live under `narrative_blueprint`, for example
 `narrative_blueprint.analysis` and `narrative_blueprint.databases`. Generic
